@@ -15,7 +15,7 @@ void  flush(void);      //清除缓冲区
 void  function(void);   //实用功能
 void  delFile(void);    //删除文件
 
-
+ 
 //定义全局变量
 int num;
 FILE* fpRead,* fpWrite; 
