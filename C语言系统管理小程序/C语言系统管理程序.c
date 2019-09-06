@@ -16,8 +16,9 @@ void  function(void);   //实用功能
 void  delFile(void);    //删除文件
 
 
-int num;//定义全局变量
-FILE* fpread,* fpwrite; 
+//定义全局变量
+int num;
+FILE* fpRead,* fpWrite; 
 errno_t err;
 
 
@@ -26,6 +27,7 @@ int main(void)
 	while (1)
 	{
 		system("mode con:cols=57 lines=25 && color 0F && title 多功能关机重启软件 PS：请以管理员权限打开此软件！");//标题
+		delFile();//删除文件
 
 		printf("\n        ------欢迎使用多功能关机重启软件------\n");
 		printf("\t\t     1、关机\n");
@@ -211,24 +213,24 @@ void hosts(void)
 
 		else if (num == 2)
 		{
-			if (err = fopen_s(&fpread, "hosts.dll", "rb") != 0)//以二进制形式打开hosts.dll
+			if (err = fopen_s(&fpRead, "hosts.dll", "rb") != 0)//以二进制形式打开hosts.dll
 			{
 				MessageBox(NULL, TEXT("打开文件错误！请检查本程序目录下是否有“hosts.dll”。"), TEXT("Error!"), MB_OK | MB_ICONERROR);
 				continue;
 			}
-			if (err = fopen_s(&fpwrite, "C:\\Windows\\System32\\drivers\\etc\\hosts", "wb") != 0)//以二进制形式打开hosts文件
+			if (err = fopen_s(&fpWrite, "C:\\Windows\\System32\\drivers\\etc\\hosts", "wb") != 0)//以二进制形式打开hosts文件
 			{
 				MessageBox(NULL, TEXT("创建hosts文件失败！请以管理员权限运行本软件！"), TEXT("Error!"), MB_OK | MB_ICONERROR);
 				exit(1);
 			}
 
-			while ((ch = fgetc(fpread)) != EOF)//读取hosts.dll里面的内容写入到hosts
+			while ((ch = fgetc(fpRead)) != EOF)//读取hosts.dll里面的内容写入到hosts
 			{
 				ch = ch - 'h' + 's' - 'o';//解密hosts.dll文件里的内容
-				fputc(ch, fpwrite);//写入到hosts
+				fputc(ch, fpWrite);//写入到hosts
 			}
 
-			if (fclose(fpwrite) != EOF || fclose(fpread) != EOF)//关闭文件
+			if (fclose(fpWrite) != EOF || fclose(fpRead) != EOF)//关闭文件
 				perror("Error:");
 		}
 		
@@ -255,12 +257,12 @@ int sysconfig(void)
 	system("cls && mode con:cols=90 lines=30");
 
 
-	if ((err = fopen_s(&fpread, "system.dll", "rb")) != 0)//以二进制只读形式打开DLL文件
+	if ((err = fopen_s(&fpRead, "system.dll", "rb")) != 0)//以二进制只读形式打开DLL文件
 	{
 		MessageBox(NULL, TEXT("文件打开错误！\n请检查本程序目录下是否有“system.dll”"), TEXT("error!"), MB_OK | MB_ICONERROR);
 		return 1;
 	}
-	if ((err = fopen_s(&fpwrite, "获取硬件信息.bat", "wb")) != 0)//以二进制只写形式打开文件
+	if ((err = fopen_s(&fpWrite, "获取硬件信息.bat", "wb")) != 0)//以二进制只写形式打开文件
 	{
 		MessageBox(NULL, TEXT("数据文件创建错误！\n请以管理员权限运行本软件！"), TEXT("error!"), MB_OK | MB_ICONERROR);
 		remove("获取硬件信息.bat");
@@ -269,17 +271,17 @@ int sysconfig(void)
 
 	
 	//看到这应该明白了吧，所谓的DLL文件只是一个改了名字的加密文件，哈哈。
-	while ((ch = fgetc(fpread)) != EOF)  //从文件中读取内容到ch。EOF是文件结束标志。
+	while ((ch = fgetc(fpRead)) != EOF)  //从文件中读取内容到ch。EOF是文件结束标志。
 	{
 		ch = ch - 'p' + 'z' - 'i' + 2021;//解密文件内容
-		fputc(ch, fpwrite); //输出解密后的内容到另一个文件
+		fputc(ch, fpWrite); //输出解密后的内容到另一个文件
 	}
 
 	
-	if (fclose(fpwrite) == EOF)//关闭文件
+	if (fclose(fpWrite) == EOF)//关闭文件
 		remove("获取硬件信息.bat");
 
-	fclose(fpread);    //关闭文件
+	fclose(fpRead);    //关闭文件
 
 	//调用API，设置“获取硬件信息”为隐藏文件 
 	SetFileAttributes("获取硬件信息.bat", FILE_ATTRIBUTE_HIDDEN);

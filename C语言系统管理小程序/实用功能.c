@@ -12,10 +12,11 @@
 #define MAXPATH 1024  
 
 //加密文件内容
-void  EncFile(void);    //加密文件内容
+void EncFile(void);    //加密文件内容
 void init(char  encry[], char  encname[], char  decry[]);//初始化数组为'\0'
 void Text(char TXT[]);//清除数组里的'\n'
 void flush(void);//清除缓冲区
+
 //计算器
 void  cal(void);	//计算器
 void oper(void);    //四则运算
@@ -27,10 +28,12 @@ void cube(void);    //正方体计算
 void cuboid(void);  //长方体计算
 void cst(void);     //三角函数
 void flush(void);   //清除缓冲区
+
 //加入自启动
 int addStart(void);
 //删除自启动
 void delStart(void);
+
 
 int num;//定义全局变量
 
@@ -841,11 +844,11 @@ int addStart(void)
 
 
 	printf("\n请输入需要添加自启动的软件的路径\n（例如：H:\\test\\test.exe）\n ：");
-	fgets(path, sizeof(path), stdin);//输入路径
+	fgets(path, 1024, stdin);//输入路径
 	flush();
 
 	printf("\n\n请输入名称\n（可随便取，但不能是汉字并且在15字内）\n ：");
-	fgets(name, sizeof(name), stdin);//输入名称
+	fgets(name, 16, stdin);//输入名称
 	flush();
 
 	for (i = 0; i < MAXPATH; i++)//去除数组里的'\n'
@@ -864,7 +867,7 @@ int addStart(void)
 		RegSetValueEx(hKey, name, 0, REG_SZ, (BYTE *)path, strlen(path));
 		RegCloseKey(hKey);//关闭注册表
 
-		printf("\n\t         添加成功！\n\n              ");
+		printf("\n\t         添加成功！\n注意：请不要删除已添加的程序文件，否则自启动会失效！\n\n              ");
 		system("pause");
 		return 0;
 	}
