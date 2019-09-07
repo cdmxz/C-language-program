@@ -15,7 +15,6 @@
 void EncFile(void);    //加密文件内容
 void init(char  encry[], char  encname[], char  decry[]);//初始化数组为'\0'
 void Text(char TXT[]);//清除数组里的'\n'
-void flush(void);//清除缓冲区
 
 //计算器
 void  cal(void);	//计算器
@@ -27,8 +26,9 @@ void circular(void);//圆柱体计算
 void cube(void);    //正方体计算
 void cuboid(void);  //长方体计算
 void cst(void);     //三角函数
-void flush(void);   //清除缓冲区
 
+//清除缓冲区
+void flush(void);   
 //加入自启动
 int addStart(void);
 //删除自启动
@@ -112,9 +112,9 @@ void EncFile(void)
 			char encry[ENCSIZE];   //储存待加密文件名称
 			char encname[DECSIZE]; //储存待加密文件加密后的名称
 			char decry[DECSIZE];   //储存待解密文件名称
-			char enc[] = "已加密 ";
-			char dec[] = "已解密 ";
-			FILE *fpread, *fpwrite;
+			const char enc[] = "已加密 ";
+			const char dec[] = "已解密 ";
+			FILE *fpRead, *fpWrite;
 			errno_t err;
 	
 
@@ -147,7 +147,7 @@ void EncFile(void)
 					printf("请输入待加密文件的名称（列如：1.txt）：");
 
 					fgets(encry, ENCSIZE, stdin);//输入待加密文件的名称
-					flush();//清除缓冲区
+					rewind(stdin);//清除缓冲区
 
 
 					for (i = 0; i <= ENCSIZE; i++) //去掉数组里的换行符
@@ -157,7 +157,7 @@ void EncFile(void)
 					if (!strcmp(encry, "000"))   //输入000返回主界面
 						continue;
 
-					if ((err = fopen_s(&fpread, encry, "rb")) != 0)//以读取的方式打开一个二进制文件
+					if ((err = fopen_s(&fpRead, encry, "rb")) != 0)//以读取的方式打开一个二进制文件
 					{
 						MessageBox(NULL, TEXT("打开待加密文件失败！\n请检查待加密的文件是否和本程序在同一目录，\n或检查文件名称是否正确！"), TEXT("错误！"), MB_OK | MB_ICONERROR);
 						continue;
@@ -166,7 +166,7 @@ void EncFile(void)
 					strcat_s(encname, sizeof(encname), enc);//合并文件名称
 					strcat_s(encname, sizeof(encname), encry);
 
-					if ((err = fopen_s(&fpwrite, encname, "wb")) != 0)//以写入的方式打开一个二进制文件
+					if ((err = fopen_s(&fpWrite, encname, "wb")) != 0)//以写入的方式打开一个二进制文件
 					{
 						perror("Error:");
 						system("pause");
@@ -174,19 +174,19 @@ void EncFile(void)
 						exit(1);
 					}
 
-					while ((ch = fgetc(fpread)) != EOF)  //从文件中读取内容到ch。EOF是文件结束标志。
+					while ((ch = fgetc(fpRead)) != EOF)  //从文件中读取内容到ch。EOF是文件结束标志。
 					{
 						ch = ch + ' ' - 9 + '9';//加密文件内容
-						fputc(ch, fpwrite);//输出加密后的内容到另一个文件
+						fputc(ch, fpWrite);//输出加密后的内容到另一个文件
 					}
 
 
-					if (fclose(fpread) == EOF)//关闭文件
+					if (fclose(fpRead) == EOF)//关闭文件
 					{
 						MessageBox(NULL, TEXT("关闭待加密文件失败！\n请检查是否有其它程序占用！"), TEXT("错误！"), MB_OK | MB_ICONERROR);
 						exit(1);
 					}
-					if (fclose(fpwrite) == EOF)//关闭文件
+					if (fclose(fpWrite) == EOF)//关闭文件
 					{
 						MessageBox(NULL, TEXT("关闭已加密文件失败！\n请检查是否有其它程序占用！"), TEXT("错误！"), MB_OK | MB_ICONERROR);
 						exit(1);
@@ -212,7 +212,7 @@ void EncFile(void)
 					printf("请输入待解密文件的名称（列如：1.txt）：");
 
 					fgets(decry, DECSIZE, stdin); //输入待解密文件的名称
-					flush();//清除缓冲区
+					rewind(stdin);//清除缓冲区
 
 					for (i = 0; i <= 170; i++)//去掉数组里的换行符
 						if (decry[i] == '\n')
@@ -221,7 +221,7 @@ void EncFile(void)
 					if (!strcmp(decry, "000"))//输入000返回主界面
 						continue;
 
-					if ((err = fopen_s(&fpread, decry, "rb")) != 0) //以读取的方式打开一个二进制文件
+					if ((err = fopen_s(&fpRead, decry, "rb")) != 0) //以读取的方式打开一个二进制文件
 					{
 						MessageBox(NULL, TEXT("打开文件失败！\n请检查待加密的文件是否和本程序在同一目录，\n或检查文件名称是否正确！"), TEXT("错误！"), MB_OK | MB_ICONERROR);
 						continue;
@@ -230,7 +230,7 @@ void EncFile(void)
 					for (i = 0; i <= 5; i++)//for循环替换文件名前三个字符，即把文件名称的已加密替换成已解密。
 						decry[i] = dec[i];
 
-					if ((err = fopen_s(&fpwrite, decry, "wb")) != 0)//以写入的方式打开一个二进制文件
+					if ((err = fopen_s(&fpWrite, decry, "wb")) != 0)//以写入的方式打开一个二进制文件
 					{
 						perror("Error:");
 						system("pause");
@@ -238,19 +238,19 @@ void EncFile(void)
 						exit(1);
 					}
 
-					while ((ch = fgetc(fpread)) != EOF)  //从文件中读取内容到ch。EOF是文件结束标志。
+					while ((ch = fgetc(fpRead)) != EOF)  //从文件中读取内容到ch。EOF是文件结束标志。
 					{
 						ch = ch - ' ' + 9 - '9';//解密文件内容
-						fputc(ch, fpwrite);//输出解密后的内容到另一个文件
+						fputc(ch, fpWrite);//输出解密后的内容到另一个文件
 					}
 
 
-					if (fclose(fpread) == EOF)//关闭文件
+					if (fclose(fpRead) == EOF)//关闭文件
 					{
 						MessageBox(NULL, TEXT("关闭待解密文件失败！\n请检查是否有其它程序占用！"), TEXT("错误！"), MB_OK | MB_ICONERROR);
 						exit(1);
 					}
-					if (fclose(fpwrite) == EOF)//关闭文件
+					if (fclose(fpWrite) == EOF)//关闭文件
 					{
 						MessageBox(NULL, TEXT("关闭已解密文件失败！\n请检查是否有其它程序占用！"), TEXT("错误！"), MB_OK | MB_ICONERROR);
 						exit(1);
@@ -300,7 +300,7 @@ void EncFile(void)
 					system("title 加密明文 && mode con cols=50 lines=20 && cls");
 					printf("\n\n请输入要加密的明文（50字以内，包括空格标点等）：\n");
 					fgets(TXT, TXTSIZE, stdin);
-					flush();
+					rewind(stdin);
 					
 
 					Text(TXT); //清除数组里的'\n'
@@ -316,7 +316,7 @@ void EncFile(void)
 					system("title 解密密文 && mode con cols=50 lines=20 && cls");
 					printf("\n\n请输入要解密的密文（50字以内，包括空格标点等）：\n");
 					fgets(TXT, TXTSIZE, stdin);
-					flush();
+					rewind(stdin);
 					
 
 					Text(TXT); //清除数组里的'\n'
@@ -845,11 +845,12 @@ int addStart(void)
 
 	printf("\n请输入需要添加自启动的软件的路径\n（例如：H:\\test\\test.exe）\n ：");
 	fgets(path, 1024, stdin);//输入路径
-	flush();
+	rewind(stdin);
 
 	printf("\n\n请输入名称\n（可随便取，但不能是汉字并且在15字内）\n ：");
 	fgets(name, 16, stdin);//输入名称
-	flush();
+	rewind(stdin);
+	
 
 	for (i = 0; i < MAXPATH; i++)//去除数组里的'\n'
 	{
@@ -894,7 +895,7 @@ void delStart(void)
 
 	printf("\n请输入名称（15字内）：");
 	fgets(name, sizeof(name), stdin);
-	flush();
+	rewind(stdin);
 	
 	for (i = 0; i < 16; i++)
 		if (name[i] == '\n')
