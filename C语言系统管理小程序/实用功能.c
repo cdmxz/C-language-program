@@ -838,17 +838,17 @@ int addStart(void)
 
 	int i, j;
 	HKEY hKey;
-	char *regpPath = { "Software\\Microsoft\\Windows\\CurrentVersion\\Run" }; //注册表启动项路径
+	char *regPath = { "Software\\Microsoft\\Windows\\CurrentVersion\\Run" }; //注册表启动项路径
 	char path[MAXPATH] = { 0 };//软件路径
-	char name[16] = { 0 };//注册表子项名称
+	char name[31] = { 0 };//注册表子项名称
 
 
 	printf("\n请输入需要添加自启动的软件的路径\n（例如：H:\\test\\test.exe）\n ：");
 	fgets(path, 1024, stdin);//输入路径
 	rewind(stdin);
 
-	printf("\n\n请输入名称\n（可随便取，但不能是汉字并且在15字内）\n ：");
-	fgets(name, 16, stdin);//输入名称
+	printf("\n\n请输入名称\n（可随便取，但要在15字内）\n ：");
+	fgets(name, 31, stdin);//输入名称
 	rewind(stdin);
 	
 
@@ -863,7 +863,7 @@ int addStart(void)
 
 
 	//打开注册表启动项 
-	if (RegOpenKeyEx(HKEY_CURRENT_USER, regpPath, 0, KEY_ALL_ACCESS, &hKey) == ERROR_SUCCESS)
+	if (RegOpenKeyEx(HKEY_CURRENT_USER, regPath, 0, KEY_ALL_ACCESS, &hKey) == ERROR_SUCCESS)
 	{  //添加一个子Key,并设置值
 		RegSetValueEx(hKey, name, 0, REG_SZ, (BYTE *)path, strlen(path));
 		RegCloseKey(hKey);//关闭注册表
@@ -888,13 +888,13 @@ void delStart(void)
 	system("title 删除程序自启动 && cls");
 
 
-	char path[110] = { "reg delete \"HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\"  /v " };
-	char name[16] = { 0 };
+	char path[115] = { "reg delete \"HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\"  /v " };
+	char name[31] = { 0 };
 	int i;
 
 
-	printf("\n请输入名称（15字内）：");
-	fgets(name, sizeof(name), stdin);
+	printf("\n请输入名称（15字内）：\n");
+	fgets(name, 31, stdin);
 	rewind(stdin);
 	
 	for (i = 0; i < 16; i++)
@@ -903,8 +903,8 @@ void delStart(void)
 
 	
 	strcat_s(path, sizeof(path), name);
-
-	puts(path);
+	
+	printf("\n\n");
 	system(path);
 
 	printf("\n\n\n");
