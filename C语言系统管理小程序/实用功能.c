@@ -32,7 +32,7 @@ void flush(void);
 //加入自启动
 int addStart(void);
 //删除自启动
-void delStart(void);
+int delStart(void);
 
 
 int num;//定义全局变量
@@ -43,7 +43,7 @@ void function(void)
 {
 	while (1)
 	{
-		system("mode con:cols=45 lines=20 && title 实用工具 && cls");
+		system("mode con:cols=45 lines=20 && title 实用功能 && cls");
 
 		printf("\n\n\n\t      1、多功能计算器\n\n");
 		printf("\t      2、加密文件内容\n\n");
@@ -91,7 +91,7 @@ void EncFile(void)
 	while (1)
 	{
 		system("title 欢迎使用加密解密程序 && mode con cols=44 lines=18 && cls");
-		printf("\n\n\t     0.返回主界面\n\n");
+		printf("\n\n\t     0.返回上一界面\n\n");
 		printf("\t     1.加密或解密文件内容\n\n");
 		printf("\t     2.加密明文或解密密文\n\n");
 		printf("\t     3.查看使用说明\n\n\n");
@@ -139,11 +139,12 @@ void EncFile(void)
 				if (num == 1)  //加密文件内容
 				{
 					system("title 加密文件内容 && mode con cols=60 lines=20 && cls");
+					
 					printf("注意：\n1、加密后的文件不能更改原来的内容，否则解密后不能恢复原样！\n");
 					printf("2、加密后的文件如需更改文件名请保留原格式。（列如：把“已加密 1.txt“ 改名为 “已加密 2.txt”）。\n");
 					printf("3、待加密的文件需要与本程序在同一目录下，并且文件名（包括后缀名和空格等）在80字以内，大于80字会报错并闪退。\n");
 					printf("4、禁止加密重要文件！禁止恶作剧！禁止干违法犯罪的事！\n");
-					printf("5、输入000返回主界面。\n\n\n\n");
+					printf("5、输入000返回上一界面。\n\n\n\n");
 					printf("请输入待加密文件的名称（列如：1.txt）：");
 
 					fgets(encry, ENCSIZE, stdin);//输入待加密文件的名称
@@ -208,7 +209,7 @@ void EncFile(void)
 					printf("1、待解密的文件需要与本程序在同一目录下，并且文件名（包括后缀名和空格等）在85字以内，大于85字会报错并闪退。\n");
 					printf("2、加密后的文件如需更改文件名请保留原格式。（列如：把“已加密 1.txt“ 改名为 “已加密 2.txt”）。\n");
 					printf("3、禁止加密重要文件！禁止恶作剧！禁止干违法犯罪的事！\n");
-					printf("4、输入000返回主界面。\n\n\n\n");
+					printf("4、输入000返回上一界面。\n\n\n\n");
 					printf("请输入待解密文件的名称（列如：1.txt）：");
 
 					fgets(decry, DECSIZE, stdin); //输入待解密文件的名称
@@ -234,7 +235,6 @@ void EncFile(void)
 					{
 						perror("Error:");
 						system("pause");
-						//MessageBox(NULL, TEXT("创建文件失败！\n请以管理员权限运行本软件！"), TEXT("错误！"), MB_OK | MB_ICONERROR);
 						exit(1);
 					}
 
@@ -259,6 +259,7 @@ void EncFile(void)
 
 					system("cls");
 					printf("\n\n\n");
+					
 					fputs(decry, stdout);//输出文件名
 					putchar('\n');
 					system("pause");
@@ -285,7 +286,7 @@ void EncFile(void)
 				system("title 加密明文或解密密文 && cls && mode con cols=50 lines=18");
 				printf("\n\n\n\t\t  1、加密明文\n\n");
 				printf("\t\t  2、解密密文\n\n");
-				printf("\t\t  3、返回主界面\n\n");
+				printf("\t\t  3、返回上一界面\n\n");
 				printf("  请输入序号：");	
 				while (scanf_s("%d", &num) != 1)
 				{
@@ -298,13 +299,15 @@ void EncFile(void)
 				if (num == 1)//加密明文
 				{
 					system("title 加密明文 && mode con cols=50 lines=20 && cls");
+					
 					printf("\n\n请输入要加密的明文（50字以内，包括空格标点等）：\n");
 					fgets(TXT, TXTSIZE, stdin);
 					rewind(stdin);
 					
 
 					Text(TXT); //清除数组里的'\n'
-					for (i = 0; i < strlen(TXT); i++)
+
+					for (i = 0; i < strlen(TXT); i++)//加密字符串
 						TXT[i] += 1;
 									
 					printf("\n\n加密后的密文是：%s\n\n", TXT);
@@ -314,13 +317,14 @@ void EncFile(void)
 				else if (num == 2)//解密密文
 				{
 					system("title 解密密文 && mode con cols=50 lines=20 && cls");
+
 					printf("\n\n请输入要解密的密文（50字以内，包括空格标点等）：\n");
 					fgets(TXT, TXTSIZE, stdin);
 					rewind(stdin);
 					
 
 					Text(TXT); //清除数组里的'\n'
-					for (i = 0; i < strlen(TXT); i++)
+					for (i = 0; i < strlen(TXT); i++)//解密字符串
 						TXT[i] -= 1;
 									
 					printf("\n\n解密后的明文是：%s\n\n", TXT);
@@ -339,7 +343,7 @@ void EncFile(void)
 		}
 //使用说明
 		else if (num == 3)
-			MessageBox(NULL, TEXT("请仔细阅读以下内容：\n1.加密或解密文件只会对文件内容进行加密或解密，\n不会对文件名称进行加密或解密。\n\n2.加密文件内容或解密文件内容前请确保待加密或待解密的文件\n没有被其它程序占用并且和本程序在同一目录。\n\n3.加密后的文件请不要更改其内容，否则解密后文件不能恢复原样！\n\n4.待加密文件名称（包括后缀名和空格等）请在80字以内，\n待解密文件名称（包括后缀名和空格等）请在85字以内。\n\n5.禁止使用本软件加密重要文件！禁止使用本软件干违法犯罪的事！\n禁止使用本软件搞恶作剧！\n您使用本软件造成的任何后果均不由原作者承担！\n一经使用本软件，视为同意此条款！\n本条款若有更新，恕不另行通知！"), TEXT("使用说明"), MB_OK);
+			MessageBox(NULL, TEXT("请仔细阅读以下内容：\n1.加密或解密文件只会对文件内容进行加密或解密，\n不会对文件名称进行加密或解密。\n\n2.加密文件内容或解密文件内容前请确保待加密或待解密的文件\n没有被其它程序占用并且和本程序在同一目录。\n\n3.加密后的文件请不要更改其内容，否则解密后文件不能恢复原样！\n\n4.待加密文件名称（包括后缀名和空格等）请在80字以内，\n待解密文件名称（包括后缀名和空格等）请在85字以内。\n\n5.本软件只适合娱乐，\n禁止使用本软件加密重要文件！禁止使用本软件干违法犯罪的事！\n禁止使用本软件搞恶作剧！\n您使用本软件造成的任何后果均不由原作者承担！\n一经使用本软件，视为同意此条款！\n本条款若有更新，恕不另行通知！"), TEXT("使用说明"), MB_OK);
 
 
 		else
@@ -386,7 +390,7 @@ void cal(void)
 		system("mode con lines=20 cols=60 && cls && title 多功能计算器");//设置标题
 
 		printf("\t\t----欢迎使用多功能计算器----\n\n");
-		printf("    \t\t       0、返回主界面\n");
+		printf("    \t\t       0、返回上一界面\n");
 		printf("    \t\t       1、普通计算\n");
 		printf("    \t\t       2、开方计算\n");
 		printf("    \t\t       3、进制转换\n");
@@ -836,30 +840,35 @@ int addStart(void)
 {
 	system("title 添加软件自启动 && cls");
 
-	int i, j;
+	int i;
+
 	HKEY hKey;
 	char *regPath = { "Software\\Microsoft\\Windows\\CurrentVersion\\Run" }; //注册表启动项路径
-	char path[MAXPATH] = { 0 };//软件路径
+	char path[MAXPATH] = { 0 };//需要添加自启动的软件的路径
 	char name[31] = { 0 };//注册表子项名称
 
-
-	printf("\n请输入需要添加自启动的软件的路径\n（例如：H:\\test\\test.exe）\n ：");
+	printf("\t    输入000返回上一界面\n\n");
+	printf("请输入需要添加自启动的软件的路径\n（例如：H:\\test\\test.exe）\n ：");
 	fgets(path, 1024, stdin);//输入路径
 	rewind(stdin);
-
-	printf("\n\n请输入名称\n（可随便取，但要在15字内）\n ：");
-	fgets(name, 31, stdin);//输入名称
-	rewind(stdin);
-	
 
 	for (i = 0; i < MAXPATH; i++)//去除数组里的'\n'
 	{
 		if (path[i] == '\n')
 			path[i] = '\0';
 	}
-	for(j = 0; j < 16; j++)
-		if (name[j] == '\n')
-			name[j] = '\0';
+	if (!strcmp(path, "000"))//输入000退出
+		return 0;
+
+
+	printf("\n\n请输入添加到注册表的键值项名称\n\n（需要在16个字符内。\n  可以使用字符、数字、代表符、空格，\n  但不能使用“\\”）\n\n ：");
+	fgets(name, 31, stdin);//输入名称
+	rewind(stdin);
+	
+
+	for(i = 0; i < 16; i++)//去除数组里的'\n'
+		if (name[i] == '\n')
+			name[i] = '\0';
 
 
 	//打开注册表启动项 
@@ -883,30 +892,35 @@ int addStart(void)
 
 
 //删除程序自启动
-void delStart(void)
+int delStart(void)
 {
 	system("title 删除程序自启动 && cls");
 
 
-	char path[115] = { "reg delete \"HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\"  /v " };
-	char name[31] = { 0 };
+    char path[117] = { "reg delete \"HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\"  /v  \"" };
+	char name[31] = { 0 }; //存储名称
+	const char Backslash[] = { "\"" };//储存反斜杠
 	int i;
 
-
-	printf("\n请输入名称（15字内）：\n");
+	printf("\t    输入000返回上一界面\n\n\n");
+	printf("请输入键值项名称（16个字符内）\n：");
 	fgets(name, 31, stdin);
 	rewind(stdin);
 	
 	for (i = 0; i < 16; i++)
 		if (name[i] == '\n')
 			name[i] = '\0';
-
+	if (!strcmp(name, "000"))
+		return 0;
 	
 	strcat_s(path, sizeof(path), name);
-	
+	strcat_s(path, sizeof(path), Backslash);
+
 	printf("\n\n");
+
 	system(path);
 
-	printf("\n\n\n");
+	printf("\n\n");
 	system("pause");
+	return 0;
 }
