@@ -13,6 +13,7 @@ void hwn(void);      //隐藏窗口
 void countDown(void);//弹出提示框
 int  hyke(void);      //注册表
 void flush(void);    //清除缓冲区
+
 //复制文件
 int  copyfile(char *fileread, char *filewrite);
 void passwd(void);
@@ -119,7 +120,7 @@ void pass(void)//密码验证
 			
 			if ((err = fopen_s(&fpWrite,"passwd.dat", "w")) != 0)//打开记录密码的文件,并且判断文件是否正常打开
 			{
-				MessageBox(NULL, TEXT("密码文件创建错误！\n请以管理员权限运行重试！"), TEXT("error!"), MB_OK | MB_ICONERROR);//弹出提示框
+				MessageBox(NULL, TEXT("密码文件创建错误！\n请以管理员权限运行重试！"), TEXT("ERROR"), MB_OK | MB_ICONERROR);//弹出提示框
 				exit(1);
 			}
 			
@@ -134,7 +135,7 @@ void pass(void)//密码验证
 
 			if (fclose(fpWrite) == EOF)//关闭文件
 			{
-				MessageBox(NULL, TEXT("文件写入错误！\n请检查是否有其它程序占用！\n或者重试！"), TEXT("error!"), MB_OK | MB_ICONERROR);
+				MessageBox(NULL, TEXT("文件写入错误！\n请检查是否有其它程序占用！\n或者重试！"), TEXT("ERROR"), MB_OK | MB_ICONERROR);
 				exit(1);
 			}
 		}
@@ -151,7 +152,7 @@ void pass(void)//密码验证
 		{
 			if ((err = fopen_s(&fpRead, "passwd.dat", "r")) != 0)//打开记录密码的文件,并且判断文件是否正常打开
 			{
-				MessageBox(NULL, TEXT("密码文件读取错误！\n请检查程序本目录是否有“passwd.dat”文件。如果没有，请修改密码。"), TEXT("error!"), MB_OK | MB_ICONERROR);//弹出提示框
+				MessageBox(NULL, TEXT("密码文件读取错误！\n请检查程序本目录是否有“passwd.dat”文件。如果没有，请修改密码。"), TEXT("ERROR"), MB_OK | MB_ICONERROR);//弹出提示框
 				break;
 			}
 
@@ -271,7 +272,7 @@ int hyke(void)
 		if (_access(folderName, 00) == -1)//判断文件夹是否存在
 		if (_mkdir(folderName) == -1)			//不存在则创建文件夹
 		{
-			MessageBox(NULL, TEXT("创建目录失败！请以管理员权限重试！"), TEXT("Error"), MB_OK | MB_ICONERROR);
+			MessageBox(NULL, TEXT("创建目录失败！请以管理员权限重试！"), TEXT("ERROR"), MB_OK | MB_ICONERROR);
 			exit(1);
 		}
 
@@ -284,7 +285,7 @@ int hyke(void)
 			RegSetValueEx(hKey, "timecyincang", 0, REG_SZ, (BYTE *)timec_Y, strlen(timec_Y));
 			RegCloseKey(hKey);//关闭注册表
 			
-			printf("\t\t    添加成功！\n\n\t          ");
+			printf("\t\t    添加成功！\n\n\t         ");
 			system("pause");
 			return 0;
 		}
@@ -308,7 +309,7 @@ int hyke(void)
 		if (_access(folderName, 00) == -1)//判断文件夹是否存在
 			if (_mkdir(folderName) == -1)			//不存在则创建文件夹
 			{
-				MessageBox(NULL, TEXT("创建目录失败！请以管理员权限重试！"), TEXT("Error"), MB_OK | MB_ICONERROR);
+				MessageBox(NULL, TEXT("创建目录失败！请以管理员权限重试！"), TEXT("ERROR"), MB_OK | MB_ICONERROR);
 				exit(1);
 			}
 
@@ -321,7 +322,7 @@ int hyke(void)
 			RegSetValueEx(hKey, "timeczidingyi", 0, REG_SZ, (BYTE *)timec_Z, strlen(timec_Z));
 			RegCloseKey(hKey);
 			
-			printf("\t\t    添加成功！\n\n\t          ");
+			printf("\t\t    添加成功！\n\n\t         ");
 			system("pause");
 			return 0;
 		}
@@ -341,27 +342,38 @@ int hyke(void)
 	{
 		passwd();//验证密码
 		system("cls");
-		printf("\n\n\n\n注意：若遭到杀软拦截，请点击允许并加入白名单！\n\n\n");
+		printf("\n\n\n\n\n\n注意：若遭到杀软拦截，请点击允许并加入白名单！\n\n\n");
 		Sleep(3000);
-		system("cls");
+		system("cls && mode con cols=53 lines=25 && title 正在删除...");
 
+		//结束进程
+		printf("\n正在结束timec隐藏版的进程...\n");
+		Sleep(2000);
+		system("taskkill /f /t /im timec隐藏版.exe");
+		
 		//删除文件
+		printf("\n\n正在删除文件...");
 		if (remove("C:\\Program Files\\timec\\timec隐藏版.exe"))
-			printf("\n\n删除timec隐藏版失败！\n如未添加timec隐藏版自启动可不理会。\n\n");
+			printf("\n删除timec隐藏版失败！\n如未添加timec隐藏版自启动可不理会。\n\n");
 		else
-			printf("\n\n删除timec隐藏版成功！\n\n\n");
+			printf("\n删除timec隐藏版成功！\n\n");
 
 		if (remove("C:\\Program Files\\timec\\timec自定义版.exe"))
-			printf("\n\n删除timec自定义版失败！\n如未添加timec自定义版自启动可不理会。\n\n");
+			printf("删除timec自定义版失败！\n如未添加timec自定义版自启动可不理会。\n\n");
 		else
-			printf("\n\n删除timec自定义版成功！\n\n\n");
-
-		system("rd /s /q C:\\\"Program Files\"\\timec");//删除目录
-		system("pause");
+			printf("删除timec自定义版成功！\n\n");
+		
+		//删除目录
+		printf("\n正在删除安装目录...\n");
+		system("rd /s /q C:\\\"Program Files\"\\timec");
 		
 		//删除注册表
+		printf("\n\n正在删除timec隐藏版注册表启动项...\n");
 		system("reg delete \"HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\"  /v timecyincang /f");
+		printf("\n正在删除timec自定义版注册表启动项...\n");
 		system("reg delete \"HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\"  /v timeczidingyi /f");
+		
+		putchar('\n');
 		system("pause");
 		break;
 	}
@@ -394,12 +406,12 @@ int copyfile(char *fileread, char *filewrite)
 	
 	if ((err = fopen_s(&fpRead, fileread, "rb")) != 0 )//以二进制方式打开文件
 	{
-		MessageBox(NULL, TEXT("无法打开文件！\n请检查“timec自定义版.exe”和“timec隐藏版.exe”是否在同一目录。\n"), TEXT("Error:"), MB_OK | MB_ICONERROR);
+		MessageBox(NULL, TEXT("无法打开文件！\n请检查“timec自定义版.exe”和“timec隐藏版.exe”是否在同一目录。\n"), TEXT("ERROR"), MB_OK | MB_ICONERROR);
 		exit(1);
 	}
 	if ((err = fopen_s(&fpWrite, filewrite, "wb")) != 0)
 	{
-		MessageBox(NULL, TEXT("无法复制文件！请以管理员权限重试！\n"), TEXT("Error:"), MB_OK | MB_ICONERROR);
+		MessageBox(NULL, TEXT("无法复制文件！请以管理员权限重试！\n"), TEXT("ERROR"), MB_OK | MB_ICONERROR);
 		exit(1);
 	}
 
@@ -438,7 +450,7 @@ void passwd(void)//删除自启动验证密码
 
 		if ((err = fopen_s(&fpRead, "passwd.dat", "r")) != 0)//打开记录密码的文件,并且判断文件是否正常打开
 		{
-			MessageBox(NULL, TEXT("密码文件读取错误！\n请检查程序本目录是否有“passwd.dat”文件。如果没有，请修改密码。"), TEXT("error!"), MB_OK | MB_ICONERROR);//弹出提示框
+			MessageBox(NULL, TEXT("密码文件读取错误！\n请检查程序本目录是否有“passwd.dat”文件。如果没有，请修改密码。"), TEXT("ERROR"), MB_OK | MB_ICONERROR);//弹出提示框
 			exit(1);
 		}
 
