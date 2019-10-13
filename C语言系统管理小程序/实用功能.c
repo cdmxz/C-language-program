@@ -17,7 +17,7 @@ void init(char  encry[], char  encname[], char  decry[]);//初始化数组为'\0'
 void Text(char TXT[]);//清除数组里的'\n'
 
 //计算器
-void  cal(void);	//计算器
+void cal(void);	    //计算器
 void oper(void);    //四则运算
 void square(void);  //开方计算
 void bin(void);     //进制转换
@@ -788,49 +788,6 @@ void cst(void)
 		printf("\n\n\t\t本功能暂未完善\n\n");
 		system("pause");
 		break;
-
-		/*
-		system("cls && title 三角函数 && mode con cols=30 lines=15");
-		printf("\n\n\t   0、返回\n");
-		printf("\t   1、sin\n");
-		printf("\t   2、cos\n");
-		printf("\t   3、tan\n");
-		printf("    请输入：");
-		while (scanf_s("%d", &cst) != 1)
-		{
-			printf("\n输入错误！请重新输入：");
-			flush();
-		}
-		flush();
-
-		if (cst == 0)
-			break;
-
-		else if (cst == 1)
-		{
-			system("cls");
-			printf("\n请输入：");
-			while (scanf_s("%lf", &a) != 1)
-			{
-				printf("\n输入错误！请重新输入：");
-				flush();
-			}
-			flush();
-			//角度转化为弧度
-			printf("%.4lf", sin(a * PAI / 180));
-			system("pause");
-		}
-
-		else if (cst == 2)
-			system("cls");
-		else if (cst == 3)
-			system("cls");
-
-		else
-		{
-			printf("\n\t输入错误！");
-			Sleep(1000);
-		}*/
 	}
 }
 
@@ -843,6 +800,7 @@ int addStart(void)
 	int i;
 
 	HKEY hKey;
+
 	char *regPath = { "Software\\Microsoft\\Windows\\CurrentVersion\\Run" }; //注册表启动项路径
 	char path[MAXPATH] = { 0 };//需要添加自启动的软件的路径
 	char name[31] = { 0 };//注册表子项名称
@@ -851,6 +809,7 @@ int addStart(void)
 	printf("请输入需要添加自启动的软件的路径\n（例如：H:\\test\\test.exe）\n ：");
 	fgets(path, 1024, stdin);//输入路径
 	rewind(stdin);
+
 
 	for (i = 0; i < MAXPATH; i++)//去除数组里的'\n'
 	{

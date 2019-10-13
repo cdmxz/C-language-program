@@ -7,16 +7,22 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "C语言系统管理小程�
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|ARM = Debug|ARM
 		Debug|x64 = Debug|x64
 		Debug|x86 = Debug|x86
+		Release|ARM = Release|ARM
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{98410198-1C5E-4C30-A1BD-0687657B1E07}.Debug|ARM.ActiveCfg = Debug|ARM
+		{98410198-1C5E-4C30-A1BD-0687657B1E07}.Debug|ARM.Build.0 = Debug|ARM
 		{98410198-1C5E-4C30-A1BD-0687657B1E07}.Debug|x64.ActiveCfg = Debug|x64
 		{98410198-1C5E-4C30-A1BD-0687657B1E07}.Debug|x64.Build.0 = Debug|x64
 		{98410198-1C5E-4C30-A1BD-0687657B1E07}.Debug|x86.ActiveCfg = Debug|Win32
 		{98410198-1C5E-4C30-A1BD-0687657B1E07}.Debug|x86.Build.0 = Debug|Win32
+		{98410198-1C5E-4C30-A1BD-0687657B1E07}.Release|ARM.ActiveCfg = Release|ARM
+		{98410198-1C5E-4C30-A1BD-0687657B1E07}.Release|ARM.Build.0 = Release|ARM
 		{98410198-1C5E-4C30-A1BD-0687657B1E07}.Release|x64.ActiveCfg = Release|x64
 		{98410198-1C5E-4C30-A1BD-0687657B1E07}.Release|x64.Build.0 = Release|x64
 		{98410198-1C5E-4C30-A1BD-0687657B1E07}.Release|x86.ActiveCfg = Release|Win32

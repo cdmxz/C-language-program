@@ -27,22 +27,22 @@ int main(void)
 {
 	while (1)
 	{
-		system("mode con:cols=57 lines=25 && color 0F && title 多功能关机重启软件 PS：请以管理员权限打开此软件！");//标题
+		system("mode con:cols=57 lines=25 && color 0F && title C语言系统管理小程序 PS：请以管理员权限打开本软件");//标题
 		delFile();//删除文件
 
-		printf("\n        ------欢迎使用多功能关机重启软件------\n");
-		printf("\t\t     1、关机\n");
-		printf("\t\t     2、重启\n");
-		printf("\t\t     3、休眠\n");
-		printf("\t\t     4、睡眠\n");
-		printf("\t\t     5、取消（关机、重启）\n");
-		printf("\t\t     6、注销\n");
-		printf("\t\t     7、实用功能\n");
-		printf("\t\t     8、查看电脑配置\n");
-		printf("\t\t     9、系统管理\n");
-		printf("\t\t    10、下载源码\n");
-		printf("\t\t     0、退出\n");
-		printf("   请输入序号：");
+		printf("\n        ------欢迎使用C语言系统管理小程序------\n");
+		printf("\t\t      1、关机\n");
+		printf("\t\t      2、重启\n");
+		printf("\t\t      3、休眠\n");
+		printf("\t\t      4、睡眠\n");
+		printf("\t\t      5、取消（关机、重启）\n");
+		printf("\t\t      6、注销\n");
+		printf("\t\t      7、实用功能\n");
+		printf("\t\t      8、查看电脑配置\n");
+		printf("\t\t      9、系统管理\n");
+		printf("\t\t     10、下载源码\n");
+		printf("\t\t      0、退出\n\n");
+		printf("     请输入序号：");
 		while (scanf_s("%d", &num) != 1)//利用scanf_s的返回值判断输入的内容是否为字符
 		{
 			flush();//清空缓冲区残余字符
@@ -574,7 +574,7 @@ void flush(void)
 {
 	int ch;
 
-	while ((ch = getchar()) != '\n'&& ch != EOF)
+	while ((ch = getchar()) != '\n' && ch != EOF)
 		;
 }
 
