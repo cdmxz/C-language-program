@@ -27,7 +27,7 @@ int main(void)
 {
 	while (1)
 	{
-		system("mode con:cols=57 lines=25 && color 0F && title C语言系统管理小程序 PS：请以管理员权限打开本软件");//标题
+		system("mode con:cols=57 lines=25 && color 0F && title C语言系统管理小程序 请以管理员权限打开本软件");//标题
 		delFile();//删除文件
 
 		printf("\n        ------欢迎使用C语言系统管理小程序------\n");
@@ -147,13 +147,24 @@ int main(void)
 			case 34:hosts();               break;
 			case 35:olddriver();           break;
 			case 36:autoshut();            break;
-			case 37:system("readme.txt");  break;
+			case 37:system("start readme.txt");  break;
 			case 38://查看系统信息
+			system("systeminfo >> 系统信息.txt && 系统信息.txt"); system("pause"); break; //将诊断信息导出到当前程序所在的目录并打开系统信息.txt
+			case 39:
 			{
-				system("systeminfo >> 系统信息.txt && 系统信息.txt");//将诊断信息导出到当前程序所在的目录并打开系统信息.txt 
+				char name[50] = { "0" };
+				char process[70] = { "taskkill /f /t /im " };
+				system("cls && tasklist >> 进程信息.txt && 进程信息.txt");
+				remove("进程信息.txt");
+				printf("请输入要结束的进程名称（例如：1.exe）：");
+				scanf_s("%s", name, 50);
+				flush();
+				strcat_s(process, sizeof(process), name);
+				system(process);
 				system("pause");
 				break;
 			}
+			
 
 			default:printf("\n\n\t输入错误!\n\n"); Sleep(1000); break;
 			}
@@ -194,7 +205,7 @@ void hosts(void)
 		flush();
 
 
-		if (num == 1)
+		if (num == 1)//打开hosts
 		{
 			MessageBox(NULL, TEXT("注意：编辑完hosts文件后请根据本软件的提示：\n“请按任意键继续...”按任意键后再关闭本程序。\n切勿直接关闭本程序，否则会造成hosts文件损坏！"), TEXT("注意："), MB_OK | MB_ICONWARNING);
 			if (rename("C:\\Windows\\System32\\drivers\\etc\\hosts", "C:\\Windows\\System32\\drivers\\etc\\hosts.txt") != 0)//重命名hosts
@@ -204,22 +215,26 @@ void hosts(void)
 			}
 
 			system("start C:\\Windows\\System32\\drivers\\etc\\hosts.txt");//打开hosts
-			printf("注意：编辑完hosts文件后请根据本软件的提示：\n“请按任意键继续...”按任意键后再关闭本程序。\n切勿直接关闭本程序，否则会造成hosts文件损坏！\n\n");
+			//printf("注意：编辑完hosts文件后请根据本软件的提示：\n“请按任意键继续...”按任意键后再关闭本程序。\n切勿直接关闭本程序，否则会造成hosts文件损坏！\n\n");
+			printf("\n\n\t\t");
 			system("pause");
 
 
 			if (rename("C:\\Windows\\System32\\drivers\\etc\\hosts.txt", "C:\\Windows\\System32\\drivers\\etc\\hosts") != 0)
+			{
 				MessageBox(NULL, TEXT("hosts文件重命名失败！\n请手动进入C:\\Windows\\System32\\drivers\\etc\\\n目录下把“hosts.txt”重命名位“hosts”。"), TEXT("Error!"), MB_OK | MB_ICONERROR);
+				system("start C:\\Windows\\System32\\drivers\\etc");
+			}
 		}
 
-		else if (num == 2)
+		else if (num == 2)//恢复hosts
 		{
-			if (err = fopen_s(&fpRead, "hosts.dll", "rb") != 0)//以二进制形式打开hosts.dll
+			if (err = fopen_s(&fpRead, "hosts.dll", "rb") != 0)//打开hosts.dll
 			{
 				MessageBox(NULL, TEXT("打开文件错误！请检查本程序目录下是否有“hosts.dll”。"), TEXT("Error!"), MB_OK | MB_ICONERROR);
 				continue;
 			}
-			if (err = fopen_s(&fpWrite, "C:\\Windows\\System32\\drivers\\etc\\hosts", "wb") != 0)//以二进制形式打开hosts文件
+			if (err = fopen_s(&fpWrite, "C:\\Windows\\System32\\drivers\\etc\\hosts", "wb") != 0)//打开hosts
 			{
 				MessageBox(NULL, TEXT("创建hosts文件失败！请以管理员权限运行本软件！"), TEXT("Error!"), MB_OK | MB_ICONERROR);
 				exit(1);
@@ -232,7 +247,10 @@ void hosts(void)
 			}
 
 			if (fclose(fpWrite) != EOF || fclose(fpRead) != EOF)//关闭文件
+			{
 				perror("Error:");
+				system("pause");
+			}
 		}
 		
 
@@ -258,12 +276,12 @@ int sysconfig(void)
 	system("cls && mode con:cols=90 lines=30");
 
 
-	if ((err = fopen_s(&fpRead, "system.dll", "rb")) != 0)//以二进制只读形式打开DLL文件
+	if ((err = fopen_s(&fpRead, "system.dll", "rb")) != 0)//打开DLL文件
 	{
 		MessageBox(NULL, TEXT("文件打开错误！\n请检查本程序目录下是否有“system.dll”"), TEXT("error!"), MB_OK | MB_ICONERROR);
 		return 1;
 	}
-	if ((err = fopen_s(&fpWrite, "获取硬件信息.bat", "wb")) != 0)//以二进制只写形式打开文件
+	if ((err = fopen_s(&fpWrite, "获取硬件信息.bat", "wb")) != 0)
 	{
 		MessageBox(NULL, TEXT("数据文件创建错误！\n请以管理员权限运行本软件！"), TEXT("error!"), MB_OK | MB_ICONERROR);
 		remove("获取硬件信息.bat");
@@ -289,7 +307,7 @@ int sysconfig(void)
 
 
 	printf("\n\t   温馨提示：请以管理员权限运行本软件，如已使用管理员权限运行请忽略。\n\n\n\n");
-	printf("注意：请在此程序显示：“请按任意键继续...”，按任意键后再关闭本程序。切勿直接关闭本程序！\n");
+	//printf("注意：请在此程序显示：“请按任意键继续...”，按任意键后再关闭本程序。切勿直接关闭本程序！\n");
 	printf("\n\n\n\n\t\t正在获取电脑配置信息，约30秒-1分钟左右。请耐心等待...\n\n");
 	Sleep(5000);
 
@@ -532,7 +550,7 @@ void reboot(void)
 		strcat_s(schtasks, sizeof(schtasks), reboot);
 		system(schtasks);
 
-		printf("\n\n如果显示“拒绝访问”字样，就请以管理员权限运行此软件。\n\n");
+		printf("\n\n如果显示“拒绝访问”字样，请以管理员权限运行此软件。\n\n");
 		system("pause");
 		break;
 	}
@@ -542,7 +560,7 @@ void reboot(void)
 	case 6:
 	{
 		system("cls && schtasks /delete /tn 重启 /F");
-		printf("\n\n\n\n\n如果显示“拒绝访问”字样，就请以管理员权限运行此软件。\n\n");
+		printf("\n\n\n\n\n如果显示“拒绝访问”字样，请以管理员权限运行此软件。\n\n");
 		system("pause");
 		break;
 	}
@@ -584,5 +602,6 @@ void  delFile(void)
 	//删除文件
 	remove("本机IP信息.txt");
 	remove("系统信息.txt");
-	remove("获取硬件信息.bat");		
+	remove("获取硬件信息.bat");
+	remove("进程信息.txt");
 }

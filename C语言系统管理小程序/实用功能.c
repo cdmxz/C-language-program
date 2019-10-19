@@ -628,12 +628,12 @@ void ascii(void)
 			flush();
 
 
-			if (ascii >= 128)
+			if (ascii > 127)
 			{
 				printf("\n\n输入最大不能大于127");
 				Sleep(1000);
 			}
-			if (ascii <= -1)
+			if (ascii < 0)
 			{
 				printf("\n\n输入最小不能小于0");
 				Sleep(1000);
