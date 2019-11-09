@@ -5,20 +5,19 @@
 #include <direct.h>//为_getcwd提供声明
 
 
-void  olddriver(void);  //整人程序1
-int   autoshut(void);    //整人程序2
+int   autoshut(void);   //彩蛋
 void  shut(void);       //关机
 void  reboot(void);     //重启
 void  hosts(void);      //修改hosts
 int   sysconfig(void);  //查看电脑配置
 void  flush(void);      //清除缓冲区
 void  function(void);   //实用功能
-void  delFile(void);    //删除文件
+void  delfile(void);    //删除文件
 
 
 //定义全局变量
 int num;
-FILE* fpRead,* fpWrite; 
+FILE *fpRead, *fpWrite; 
 errno_t err;
 
 
@@ -28,7 +27,7 @@ int main(void)
 	while (1)
 	{
 		system("mode con:cols=57 lines=25 && color 0F && title C语言系统管理小程序 请以管理员权限打开本软件");//标题
-		delFile();//删除文件
+		delfile();//删除文件
 
 		printf("\n        ------欢迎使用C语言系统管理小程序------\n");
 		printf("\t\t      1、关机\n");
@@ -62,7 +61,7 @@ int main(void)
 		{
 			system("cls && color 04");
 		
-			printf("\n\n\n\n\n注意：\n确保此计算机已关闭休眠功能，否则会当成休眠功能启动\n\n");
+			printf("\n\n\n\n\n注意：\n请确保此计算机已关闭休眠功能，否则会当成启动休眠功能\n\n");
 			printf("（开启或关闭休眠功能可在“9、开启关闭功能”找到）\n");
 			Sleep(2000);
 			system("rundll32.exe powrprof.dll,SetSuspendState 0,1,0");//执行睡眠命令 
@@ -99,7 +98,7 @@ int main(void)
 			printf("31、查看IP地址     32、关闭IPv6临时地址 33、开启IPv6临时地址\n\n");
 		
 			printf("其他：\n");
-			printf("34、修改hosts	   35、打开彩蛋1        36、打开彩蛋2\n\n");
+			printf("34、修改hosts	   35、结束程序进程        36、打开彩蛋\n\n");
 			printf("请输入序号：");
 			while (scanf_s("%d", &num) != 1)//处理字符输入
 			{
@@ -145,27 +144,24 @@ int main(void)
 			case 32:printf("\n\t   "); system("netsh interface ipv6 set privacy state=disable"); system("pause"); break;
 			case 33:printf("\n\t   "); system("netsh interface ipv6 set privacy state=enabled"); system("pause"); break;
 			case 34:hosts();               break;
-			case 35:olddriver();           break;
-			case 36:autoshut();            break;
-			case 37:system("start readme.txt");  break;
-			case 38://查看系统信息
-			system("systeminfo >> 系统信息.txt && 系统信息.txt"); system("pause"); break; //将诊断信息导出到当前程序所在的目录并打开系统信息.txt
-			case 39:
+			case 35:
 			{
-				char name[50] = { "0" };
+				char name[50];
 				char process[70] = { "taskkill /f /t /im " };
 				system("cls && tasklist >> 进程信息.txt && 进程信息.txt");
 				remove("进程信息.txt");
 				printf("请输入要结束的进程名称（例如：1.exe）：");
-				scanf_s("%s", name, 50);
-				flush();
+				gets_s(name, 50);
 				strcat_s(process, sizeof(process), name);
 				system(process);
 				system("pause");
 				break;
 			}
+			case 36:autoshut();            break;
+			case 37:system("start readme.txt");  break;
+			case 38://查看系统信息
+			system("systeminfo >> 系统信息.txt && 系统信息.txt"); system("pause"); break; //将诊断信息导出到当前程序所在的目录并打开系统信息.txt
 			
-
 			default:printf("\n\n\t输入错误!\n\n"); Sleep(1000); break;
 			}
 			break;
@@ -586,18 +582,16 @@ void reboot(void)
 }
 
 
-
 //清除缓冲区
 void flush(void)
 {
 	int ch;
-
 	while ((ch = getchar()) != '\n' && ch != EOF)
 		;
 }
 
 
-void  delFile(void)
+void  delfile(void)
 {
 	//删除文件
 	remove("本机IP信息.txt");

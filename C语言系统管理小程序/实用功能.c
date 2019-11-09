@@ -3,18 +3,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-
+#include <io.h>
 
 #define PAI 3.14
-#define ENCSIZE 163
-#define DECSIZE 170
-#define TXTSIZE 105
-#define MAXPATH 1024  
+#define WORDSIZE 105
+#define MAXPATH 415  
 
 //加密文件内容
-void EncFile(void);    //加密文件内容
-void init(char  encry[], char  encname[], char  decry[]);//初始化数组为'\0'
-void Text(char TXT[]);//清除数组里的'\n'
+void encfile(void);    //加密文件内容
+void init(char filename[]);//初始化数组为'\0'
 
 //计算器
 void cal(void);	    //计算器
@@ -25,14 +22,14 @@ void ascii(void);   //ascii转换
 void circular(void);//圆柱体计算
 void cube(void);    //正方体计算
 void cuboid(void);  //长方体计算
-void cst(void);     //三角函数
+
 
 //清除缓冲区
 void flush(void);   
 //加入自启动
-int addStart(void);
+int addstart(void);
 //删除自启动
-int delStart(void);
+int delstart(void);
 
 
 int num;//定义全局变量
@@ -63,13 +60,13 @@ void function(void)
 			cal();
 		
 		else if (num == 2)
-			EncFile();
+			encfile();
 
 		else if (num == 3)
-			addStart();
+			addstart();
 
 		else if(num==4)
-			delStart();
+			delstart();
 
 		else if (num == 5)
 			break;
@@ -84,300 +81,242 @@ void function(void)
 
 
 //加密文件内容
-void EncFile(void)
+void encfile(void)
 {
-	int ch, i;
+	int num, ch;
+	char filename[MAXPATH] = { 0 };   //储存待加密或待解密文件名称
+	FILE *fpRead, *fpWrite;
+	errno_t err;
+
 
 	while (1)
 	{
-		system("title 欢迎使用加密解密程序 && mode con cols=44 lines=18 && cls");
-		printf("\n\n\t     0.返回上一界面\n\n");
-		printf("\t     1.加密或解密文件内容\n\n");
-		printf("\t     2.加密明文或解密密文\n\n");
-		printf("\t     3.查看使用说明\n\n\n");
-		printf(" 请输入序号：");
-		while (scanf_s("%d", &num) != 1)//处理字符输入
+		init(filename);//在每一次循环前初始化数组元素
+
+		system("title 欢迎使用加密或解密程序 && cls && mode con cols=50 lines=20");
+		printf("\n禁止加密重要文件！禁止恶作剧！禁止干违法犯罪的事！\n");
+		printf("\n\n\t         0、返回上一界面\n\n");
+		printf("\t         1、加密文件内容\n\n");
+		printf("\t         2、解密文件内容\n\n");
+		printf("\t         3、加密明文\n\n");
+		printf("\t         4、解密密文\n\n");
+		printf("\t         5、查看使用说明\n\n");
+		printf("\t  请输入：");
+		while (scanf_s("%d", &num) != 1)
 		{
-			flush();
+			rewind(stdin);
 			printf("\n输入错误！请重新输入：");
 		}
-		flush();
-			
+		rewind(stdin);
+
 		if (num == 0)
 			break;
 
-//加密或解密文件内容
-		else if (num == 1)
+		else if (num == 1)  //加密文件内容
 		{
-			char encry[ENCSIZE];   //储存待加密文件名称
-			char encname[DECSIZE]; //储存待加密文件加密后的名称
-			char decry[DECSIZE];   //储存待解密文件名称
-			const char enc[] = "已加密 ";
-			const char dec[] = "已解密 ";
-			FILE *fpRead, *fpWrite;
-			errno_t err;
-	
+			system("title 加密文件内容 && mode con cols=60 lines=20 && cls");
 
-			while (1)
+			printf("注意：\n1、加密后的文件不能更改原来的内容，否则解密后不能恢复原样！\n");
+			printf("2、待加密的文件的文件名称（包括路径、标点、后缀名等）请在200字以内，大于200字会报错并闪退。\n");
+			printf("3、加密后的文件如需更改文件名请保留原后缀名“.fh”。（列如：把“1.txt.fh“ 改名为 “2.txt.fh”）。\n");
+			printf("4、禁止加密重要文件！禁止恶作剧！禁止干违法犯罪的事！\n");
+			printf("5、输入000返回上一界面。\n\n\n\n");
+			printf("请输入待加密文件的名称（列如：C:\\1.txt或1.txt）：");
+
+			gets_s(filename, (MAXPATH - 5));//输入待加密文件的名称
+			//printf("数组长度：%lu", strlen(filename));
+			if (filename[0] == 34)//支持文件拖拽输入
 			{
-				init(encry, encname, decry);//在每一次循环前初始化数组元素
+				filename[strlen(filename) - 1] = 0;
+				strcpy_s(filename, MAXPATH, filename + 1);//清楚拖拽输入多出来的双引号
+			}
 
-				system("title 加密或解密文件内容 && cls && mode con cols=50 lines=18");
-				printf("\n禁止加密重要文件！禁止恶作剧！禁止干违法犯罪的事！\n");
-				printf("\n\n\t         1、加密文件内容\n\n");
-				printf("\t         2、解密文件内容\n\n");
-				printf("\t         3、返回主界面\n\n");
-				printf("\t  请输入：");
-				while (scanf_s("%d", &num) != 1)
-				{
-					flush();
-					printf("\n输入错误！请重新输入：");
-				}
-				flush();
-	
+			if (!strcmp(filename, "000"))   //输入000返回主界面
+				continue;
 
-				if (num == 1)  //加密文件内容
-				{
-					system("title 加密文件内容 && mode con cols=60 lines=20 && cls");
-					
-					printf("注意：\n1、加密后的文件不能更改原来的内容，否则解密后不能恢复原样！\n");
-					printf("2、加密后的文件如需更改文件名请保留原格式。（列如：把“已加密 1.txt“ 改名为 “已加密 2.txt”）。\n");
-					printf("3、待加密的文件需要与本程序在同一目录下，并且文件名（包括后缀名和空格等）在80字以内，大于80字会报错并闪退。\n");
-					printf("4、禁止加密重要文件！禁止恶作剧！禁止干违法犯罪的事！\n");
-					printf("5、输入000返回上一界面。\n\n\n\n");
-					printf("请输入待加密文件的名称（列如：1.txt）：");
+			if ((err = fopen_s(&fpRead, filename, "rb")) != 0)//以读的方式打开文件
+			{
+				perror("Error:");
+				system("pause");
+				continue;
+			}
 
-					fgets(encry, ENCSIZE, stdin);//输入待加密文件的名称
-					rewind(stdin);//清除缓冲区
+			strcat_s(filename, MAXPATH, ".fh");//给加密后的文件添加后缀名
 
+			if ((err = fopen_s(&fpWrite, filename, "wb")) != 0)//以写的方式打开文件
+			{
+				perror("Error:");
+				system("pause");
+				exit(1);
+			}
 
-					for (i = 0; i <= ENCSIZE; i++) //去掉数组里的换行符
-						if (encry[i] == '\n')
-							encry[i] = '\0';
+			printf("\n\n\t\t\t请稍等...");
 
-					if (!strcmp(encry, "000"))   //输入000返回主界面
-						continue;
-
-					if ((err = fopen_s(&fpRead, encry, "rb")) != 0)//以读取的方式打开一个二进制文件
-					{
-						MessageBox(NULL, TEXT("打开待加密文件失败！\n请检查待加密的文件是否和本程序在同一目录，\n或检查文件名称是否正确！"), TEXT("错误！"), MB_OK | MB_ICONERROR);
-						continue;
-					}
-
-					strcat_s(encname, sizeof(encname), enc);//合并文件名称
-					strcat_s(encname, sizeof(encname), encry);
-
-					if ((err = fopen_s(&fpWrite, encname, "wb")) != 0)//以写入的方式打开一个二进制文件
-					{
-						perror("Error:");
-						system("pause");
-						//MessageBox(NULL, TEXT("创建文件失败！\n请以管理员权限运行本软件！"), TEXT("错误！"), MB_OK | MB_ICONERROR);
-						exit(1);
-					}
-
-					while ((ch = fgetc(fpRead)) != EOF)  //从文件中读取内容到ch。EOF是文件结束标志。
-					{
-						ch = ch + ' ' - 9 + '9';//加密文件内容
-						fputc(ch, fpWrite);//输出加密后的内容到另一个文件
-					}
+			while ((ch = fgetc(fpRead)) != EOF)  //从文件中读取内容到ch。EOF是文件结束标志。
+			{
+				ch = ch + ' ' - 9 + '9';//加密文件内容
+				fputc(ch, fpWrite);//输出加密后的内容到另一个文件
+			}
 
 
-					if (fclose(fpRead) == EOF)//关闭文件
-					{
-						MessageBox(NULL, TEXT("关闭待加密文件失败！\n请检查是否有其它程序占用！"), TEXT("错误！"), MB_OK | MB_ICONERROR);
-						exit(1);
-					}
-					if (fclose(fpWrite) == EOF)//关闭文件
-					{
-						MessageBox(NULL, TEXT("关闭已加密文件失败！\n请检查是否有其它程序占用！"), TEXT("错误！"), MB_OK | MB_ICONERROR);
-						exit(1);
-					}
+			if (fclose(fpRead) == EOF)//关闭文件
+			{
+				MessageBox(NULL, TEXT("关闭待加密文件失败！\n请检查是否有其它程序占用！"), TEXT("错误！"), MB_OK | MB_ICONERROR);
+				exit(1);
+			}
+			if (fclose(fpWrite) == EOF)//关闭文件
+			{
+				MessageBox(NULL, TEXT("关闭已加密文件失败！\n请检查是否有其它程序占用！"), TEXT("错误！"), MB_OK | MB_ICONERROR);
+				exit(1);
+			}
 
-					system("cls");
-					printf("\n\n\n");
-					fputs(encname, stdout);//输出文件名
-					putchar('\n');
-					system("pause");
-				}
+			system("cls");
+			printf("\n\n\n已解密：%s\n\n\t\t    ", filename);//输出文件名
+			system("pause");
+		}
 
 
-				else if (num == 2)//解密文件内容
-				{
-					system("title 解密文件内容 && mode con cols=60 lines=20 && cls");
-					
-					printf("注意：\n");
-					printf("1、待解密的文件需要与本程序在同一目录下，并且文件名（包括后缀名和空格等）在85字以内，大于85字会报错并闪退。\n");
-					printf("2、加密后的文件如需更改文件名请保留原格式。（列如：把“已加密 1.txt“ 改名为 “已加密 2.txt”）。\n");
-					printf("3、禁止加密重要文件！禁止恶作剧！禁止干违法犯罪的事！\n");
-					printf("4、输入000返回上一界面。\n\n\n\n");
-					printf("请输入待解密文件的名称（列如：1.txt）：");
-
-					fgets(decry, DECSIZE, stdin); //输入待解密文件的名称
-					rewind(stdin);//清除缓冲区
-
-					for (i = 0; i <= 170; i++)//去掉数组里的换行符
-						if (decry[i] == '\n')
-							decry[i] = '\0';
-
-					if (!strcmp(decry, "000"))//输入000返回主界面
-						continue;
-
-					if ((err = fopen_s(&fpRead, decry, "rb")) != 0) //以读取的方式打开一个二进制文件
-					{
-						MessageBox(NULL, TEXT("打开文件失败！\n请检查待加密的文件是否和本程序在同一目录，\n或检查文件名称是否正确！"), TEXT("错误！"), MB_OK | MB_ICONERROR);
-						continue;
-					}
-
-					for (i = 0; i <= 5; i++)//for循环替换文件名前三个字符，即把文件名称的已加密替换成已解密。
-						decry[i] = dec[i];
-
-					if ((err = fopen_s(&fpWrite, decry, "wb")) != 0)//以写入的方式打开一个二进制文件
-					{
-						perror("Error:");
-						system("pause");
-						exit(1);
-					}
-
-					while ((ch = fgetc(fpRead)) != EOF)  //从文件中读取内容到ch。EOF是文件结束标志。
-					{
-						ch = ch - ' ' + 9 - '9';//解密文件内容
-						fputc(ch, fpWrite);//输出解密后的内容到另一个文件
-					}
+		else if (num == 2)//解密文件内容
+		{
+			unsigned len, j;
 
 
-					if (fclose(fpRead) == EOF)//关闭文件
-					{
-						MessageBox(NULL, TEXT("关闭待解密文件失败！\n请检查是否有其它程序占用！"), TEXT("错误！"), MB_OK | MB_ICONERROR);
-						exit(1);
-					}
-					if (fclose(fpWrite) == EOF)//关闭文件
-					{
-						MessageBox(NULL, TEXT("关闭已解密文件失败！\n请检查是否有其它程序占用！"), TEXT("错误！"), MB_OK | MB_ICONERROR);
-						exit(1);
-					}
+			system("title 解密文件内容 && mode con cols=60 lines=20 && cls");
+
+			printf("注意：\n");
+			printf("1、待解密的文件的文件名称（包括路径、标点、后缀名等）请在205字以内，大于205字会报错并闪退。\n");
+			printf("2、加密后的文件如需更改文件名请保留原后缀名“.fh”。（列如：把“1.txt.fh“ 改名为 “2.txt.fh”）。\n");
+			printf("3、禁止加密重要文件！禁止恶作剧！禁止干违法犯罪的事！\n");
+			printf("4、输入000返回上一界面。\n\n\n\n");
+			printf("请输入待解密文件的名称（列如：C:\\1.txt或1.txt.fh）：");
+
+			gets_s(filename, MAXPATH); //输入待解密文件的名称
+			if (filename[0] == 34)//支持文件拖拽输入
+			{
+				filename[strlen(filename) - 1] = 0;
+				strcpy_s(filename, MAXPATH, filename + 1);//清楚拖拽输入多出来的双引号
+			}
+
+			if (!strcmp(filename, "000"))//输入000返回主界面
+				continue;
+
+			if ((err = fopen_s(&fpRead, filename, "rb")) != 0) //以读的方式打开文件
+			{
+				MessageBox(NULL, TEXT("打开文件失败！\n请检查待加密的文件是否和本程序在同一目录，\n或检查文件名称是否正确！"), TEXT("错误！"), MB_OK | MB_ICONERROR);
+				continue;
+			}
 
 
-					system("cls");
-					printf("\n\n\n");
-					
-					fputs(decry, stdout);//输出文件名
-					putchar('\n');
-					system("pause");
-				}
+			len = strlen(filename) - 1;//获取数组长度
+			for (j = len; j > (len - 3); j--)//删除“.fh”后缀名
+				filename[j] = '\0';
 
-				else if (num == 3)
-				break;
 
+			if (_access(filename, 0) != -1)//判断需要解密的文件是否在当前路径中存在
+			{
+				printf("\n%s已在当前路径中存在，是否覆盖此文件（y/n）？", filename);
+				scanf_s("%c", &(char)num, 1);
+				rewind(stdin);
+
+				if (num == 121 || num == 89)
+					;
+				else if (num == 110 || num == 78)
+					continue;
 				else
 				{
-					printf("\n\t\t输入错误！");
+					printf("\n\t\t\t输入错误！");
 					Sleep(1000);
+					continue;
 				}
 			}
+
+			if ((err = fopen_s(&fpWrite, filename, "wb")) != 0)//以写的方式打开文件
+			{
+				perror("Error:");
+				system("pause");
+				exit(1);
+			}
+
+			printf("\n\n\t\t\t请稍等...");
+
+			while ((ch = fgetc(fpRead)) != EOF)  //从文件中读取内容到ch。EOF是文件结束标志。
+			{
+				ch = ch - ' ' + 9 - '9';//解密文件内容
+				fputc(ch, fpWrite);//输出解密后的内容到另一个文件
+			}
+
+
+			if (fclose(fpRead) == EOF)//关闭文件
+			{
+				MessageBox(NULL, TEXT("关闭待解密文件失败！\n请检查是否有其它程序占用！"), TEXT("错误！"), MB_OK | MB_ICONERROR);
+				exit(1);
+			}
+			if (fclose(fpWrite) == EOF)//关闭文件
+			{
+				MessageBox(NULL, TEXT("关闭已解密文件失败！\n请检查是否有其它程序占用！"), TEXT("错误！"), MB_OK | MB_ICONERROR);
+				exit(1);
+			}
+
+
+			system("cls");
+			printf("\n\n\n已加密：%s\n\n\t\t    ", filename);//输出文件名
+			system("pause");
 		}
-//加密明文或解密密文
-		else if (num == 2)
+
+		else if (num == 3)//加密明文
 		{
 			unsigned  i;		//strlen返回一个无符号整型
-			char TXT[TXTSIZE];
+			char word[WORDSIZE];
 
-			while (1)
-			{
-				system("title 加密明文或解密密文 && cls && mode con cols=50 lines=18");
-				printf("\n\n\n\t\t  1、加密明文\n\n");
-				printf("\t\t  2、解密密文\n\n");
-				printf("\t\t  3、返回上一界面\n\n");
-				printf("  请输入序号：");	
-				while (scanf_s("%d", &num) != 1)
-				{
-					flush();
-					printf("\n输入错误！请重新输入：");
-				}
-				flush();
+			system("title 加密明文 && mode con cols=50 lines=20 && cls");
 
+			printf("\n\n请输入要加密的明文（50字以内，包括空格标点等）：\n");
+			gets_s(word, WORDSIZE);
 
-				if (num == 1)//加密明文
-				{
-					system("title 加密明文 && mode con cols=50 lines=20 && cls");
-					
-					printf("\n\n请输入要加密的明文（50字以内，包括空格标点等）：\n");
-					fgets(TXT, TXTSIZE, stdin);
-					rewind(stdin);
-					
+			for (i = 0; i < strlen(word); i++)//加密字符串
+				word[i] += 1;
 
-					Text(TXT); //清除数组里的'\n'
-
-					for (i = 0; i < strlen(TXT); i++)//加密字符串
-						TXT[i] += 1;
-									
-					printf("\n\n加密后的密文是：%s\n\n", TXT);
-					system("pause");
-				}
-
-				else if (num == 2)//解密密文
-				{
-					system("title 解密密文 && mode con cols=50 lines=20 && cls");
-
-					printf("\n\n请输入要解密的密文（50字以内，包括空格标点等）：\n");
-					fgets(TXT, TXTSIZE, stdin);
-					rewind(stdin);
-					
-
-					Text(TXT); //清除数组里的'\n'
-					for (i = 0; i < strlen(TXT); i++)//解密字符串
-						TXT[i] -= 1;
-									
-					printf("\n\n解密后的明文是：%s\n\n", TXT);
-					system("pause");
-				}
-
-				else if (num == 3)//返回主界面
-					break;
-
-				else
-				{
-					printf("\n\n\t输入错误！\n");
-					Sleep(1000);
-				}
-			}
+			printf("\n\n加密后的密文是：%s\n\n", word);
+			system("pause");
 		}
-//使用说明
-		else if (num == 3)
-			MessageBox(NULL, TEXT("请仔细阅读以下内容：\n1.加密或解密文件只会对文件内容进行加密或解密，\n不会对文件名称进行加密或解密。\n\n2.加密文件内容或解密文件内容前请确保待加密或待解密的文件\n没有被其它程序占用并且和本程序在同一目录。\n\n3.加密后的文件请不要更改其内容，否则解密后文件不能恢复原样！\n\n4.待加密文件名称（包括后缀名和空格等）请在80字以内，\n待解密文件名称（包括后缀名和空格等）请在85字以内。\n\n5.本软件只适合娱乐，\n禁止使用本软件加密重要文件！禁止使用本软件干违法犯罪的事！\n禁止使用本软件搞恶作剧！\n您使用本软件造成的任何后果均不由原作者承担！\n一经使用本软件，视为同意此条款！\n本条款若有更新，恕不另行通知！"), TEXT("使用说明"), MB_OK);
 
+		else if (num == 4)//解密密文
+		{
+			unsigned  i;		//strlen返回一个无符号整型
+			char word[WORDSIZE];
+
+			system("title 解密密文 && mode con cols=50 lines=20 && cls");
+
+			printf("\n\n请输入要解密的密文（50字以内，包括空格标点等）：\n");
+			gets_s(word, WORDSIZE);
+
+			for (i = 0; i < strlen(word); i++)//解密字符串
+				word[i] -= 1;
+
+			printf("\n\n解密后的明文是：%s\n\n", word);
+			system("pause");
+		}
+
+
+		else if (num == 5)//使用说明
+			MessageBox(NULL, TEXT("使用方法：\n1.文件名称输入方式：\n1、直接用鼠标把文件拖拽到程序窗口即可\n2、在输入文件名称窗口中直接输入文件路径（如：C://1.txt）\n3、在输入文件名称窗口中直接输入文件名称（如：1.txt）\n注意：使用第3种方式需要把本程序和待加密/待解密文件放到同一文件夹内。\n\n2.本程序理论上支持所有文件格式，但实际还待验证。\n\n注意事项（请仔细阅读以下内容）：\n1.加密或解密文件只会对文件内容进行加密或解密，\n不会对文件名称进行加密或解密。\n\n2.加密后的文件如需更改文件名请保留原后缀名“.fh”。\n（列如：把“1.txt.fh“ 改名为 “2.txt.fh”）。\n\n3.加密后的文件请不要更改其内容，否则解密后文件不能恢复原样！\n\n4.待加密文件名称（包括路径、标点、后缀名等）请在200字以内，\n待解密文件名称（包括路径、标点、后缀名等）请在205字以内。\n\n5.本软件只适合娱乐，\n禁止使用本软件加密重要文件！禁止使用本软件干违法犯罪的事！\n禁止使用本软件搞恶作剧！\n您使用本软件造成的任何后果均不由原作者承担！\n一经使用本软件，视为同意此条款！\n本条款若有更新，恕不另行通知！"), TEXT("使用说明"), MB_OK);
 
 		else
 		{
 			printf("\n\t输入错误！");
 			Sleep(1000);
 		}
+
 	}
 }
 
 
 //初始化数组
-void init(char encry[], char encname[], char decry[])
+void init(char filename[])
 {
 	int i;
-
-	for (i = 0; i < ENCSIZE; i++)
-		encry[i] = 0;
-
-	for (i = 0; i < DECSIZE; i++)
-	{
-		encname[i] = 0;
-		decry[i] = 0;
-	}
-}
-
-
-//清除数组里的'\n'
-void Text(char TXT[])
-{
-	int i;
-	for (i = 0; i < TXTSIZE; i++)
-		if (TXT[i] == '\n')
-			TXT[i] = '\0';
+	for (i = 0; i < MAXPATH; i++)
+		filename[i] = 0;
 }
 
 
@@ -397,8 +336,7 @@ void cal(void)
 		printf("    \t\t       4、ASCII码转换\n");
 		printf("    \t\t       5、圆柱体/圆计算\n");
 		printf("    \t\t       6、正方形/体计算\n");
-		printf("    \t\t       7、长方形/体计算\n");
-		printf("    \t\t       8、三角函数计算\n\n\n");
+		printf("    \t\t       7、长方形/体计算\n\n\n");
 		printf("\t请输入：");
 		while (scanf_s("%d", &num) != 1)
 		{
@@ -417,7 +355,6 @@ void cal(void)
 		case 5:circular(); break;//圆柱体、圆计算
 		case 6:cube(); break;    //正方体、形计算
 		case 7:cuboid(); break;  //长方体、形计算
-		case 8:cst(); break;	 //三角函数计算
 		default:printf("\n\t输入错误！"); Sleep(1000); break;
 		}
 		break;
@@ -574,7 +511,7 @@ void bin(void)
 				total++;
 				dec = (long long int)(dec / 10);
 			}
-			printf("\n\n二进制 %lld 转换为十进制的值是：%.0lf\n\n", tmp, count); //打印
+			printf("\n\n二进制 %lld 转换为十进制的值是：%.0lf\n\n", tmp, count); //输出
 		}
 
 		else if (num == 3)
@@ -776,58 +713,26 @@ void cuboid(void)
 	}
 }
 
-
-//三角函数
-void cst(void)
-{
-	//int cst;
-	
-
-	while (1)
-	{
-		printf("\n\n\t\t本功能暂未完善\n\n");
-		system("pause");
-		break;
-	}
-}
-
-
 //添加程序自启动
-int addStart(void)
+int addstart(void)
 {
 	system("title 添加软件自启动 && cls");
 
-	int i;
-
 	HKEY hKey;
-
 	char *regPath = { "Software\\Microsoft\\Windows\\CurrentVersion\\Run" }; //注册表启动项路径
 	char path[MAXPATH] = { 0 };//需要添加自启动的软件的路径
 	char name[31] = { 0 };//注册表子项名称
 
 	printf("\t    输入000返回上一界面\n\n");
 	printf("请输入需要添加自启动的软件的路径\n（例如：H:\\test\\test.exe）\n ：");
-	fgets(path, 1024, stdin);//输入路径
-	rewind(stdin);
+	gets_s(path, MAXPATH);//输入路径
 
-
-	for (i = 0; i < MAXPATH; i++)//去除数组里的'\n'
-	{
-		if (path[i] == '\n')
-			path[i] = '\0';
-	}
 	if (!strcmp(path, "000"))//输入000退出
 		return 0;
 
 
 	printf("\n\n请输入添加到注册表的键值项名称\n\n（需要在16个字符内。\n  可以使用字符、数字、代表符、空格，\n  但不能使用“\\”）\n\n ：");
-	fgets(name, 31, stdin);//输入名称
-	rewind(stdin);
-	
-
-	for(i = 0; i < 16; i++)//去除数组里的'\n'
-		if (name[i] == '\n')
-			name[i] = '\0';
+	gets_s(name, 31);//输入名称
 
 
 	//打开注册表启动项 
@@ -836,7 +741,7 @@ int addStart(void)
 		RegSetValueEx(hKey, name, 0, REG_SZ, (BYTE *)path, strlen(path));
 		RegCloseKey(hKey);//关闭注册表
 
-		printf("\n\t         添加成功！\n注意：请不要删除已添加的程序文件，否则自启动会失效！\n\n              ");
+		printf("\n\t         添加成功！\n注意：请不要删除已添加的程序，否则自启动会失效！\n\n              ");
 		system("pause");
 		return 0;
 	}
@@ -851,34 +756,26 @@ int addStart(void)
 
 
 //删除程序自启动
-int delStart(void)
+int delstart(void)
 {
 	system("title 删除程序自启动 && cls");
-
-
-    char path[117] = { "reg delete \"HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\"  /v  \"" };
+    char path[120] = { "reg delete \"HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\"  /v  \"" };
 	char name[31] = { 0 }; //存储名称
 	const char Backslash[] = { "\"" };//储存反斜杠
-	int i;
-
+	
 	printf("\t    输入000返回上一界面\n\n\n");
 	printf("请输入键值项名称（16个字符内）\n：");
-	fgets(name, 31, stdin);
-	rewind(stdin);
-	
-	for (i = 0; i < 16; i++)
-		if (name[i] == '\n')
-			name[i] = '\0';
+	gets_s(name, 31);
+
 	if (!strcmp(name, "000"))
 		return 0;
 	
 	strcat_s(path, sizeof(path), name);
 	strcat_s(path, sizeof(path), Backslash);
 
+	
 	printf("\n\n");
-
 	system(path);
-
 	printf("\n\n");
 	system("pause");
 	return 0;
