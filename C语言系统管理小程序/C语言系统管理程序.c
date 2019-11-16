@@ -1,23 +1,23 @@
-//创建时间：2019年1月29  目前最后修改时间：2019年8月26日
+//项目创建时间：2019年1月29日  目前最后修改时间：2019年11月16日
 #include <stdio.h>
 #include <stdlib.h>
 #include <Windows.h>
 #include <direct.h>//为_getcwd提供声明
+#include <io.h>
 
-
-int   autoshut(void);   //彩蛋
 void  shut(void);       //关机
 void  reboot(void);     //重启
+int   system_config(void);  //查看电脑配置
+int   system_function(void);//系统管理
 void  hosts(void);      //修改hosts
-int   sysconfig(void);  //查看电脑配置
 void  flush(void);      //清除缓冲区
 void  function(void);   //实用功能
 void  delfile(void);    //删除文件
-
+int   autoshut(void);   //彩蛋
 
 //定义全局变量
 int num;
-FILE *fpRead, *fpWrite; 
+FILE *fpread, *fpwrite; 
 errno_t err;
 
 
@@ -52,129 +52,144 @@ int main(void)
 
 		switch (num)
 		{
-		case 0:exit(0); //退出
+		case 0:return 0; //退出
 		case 1:shut(); break;//关机
 		case 2:reboot(); break;//重启
-		case 3:system("shutdown -h"); Sleep(2000); exit(0);//休眠
-
+		case 3:system("shutdown -h"); Sleep(2000); return 0;//休眠
 		case 4: //睡眠
 		{
 			system("cls && color 04");
-		
 			printf("\n\n\n\n\n注意：\n请确保此计算机已关闭休眠功能，否则会当成启动休眠功能\n\n");
-			printf("（开启或关闭休眠功能可在“9、开启关闭功能”找到）\n");
+			printf("（开启或关闭休眠功能可在“9、系统管理”找到）\n");
 			Sleep(2000);
 			system("rundll32.exe powrprof.dll,SetSuspendState 0,1,0");//执行睡眠命令 
 			return 0;
 		}
-
-		case 5:system("shutdown -a"); break; //取消
-		case 6:system("shutdown -l"); exit(0); //注销
-		case 7:function();  break;//实用功能
-		case 8:sysconfig(); break;//查看电脑配置
-
-		case 9://系统管理
-		{
-			system("cls && color 71 && mode con:cols=63 lines=28");
-			system("title 系统管理 PS：输入7返回，输入37查看使用说明");
-
-			printf("系统管理：\n");
-			printf(" 1、开启休眠        2、关闭休眠         38、查看系统信息\n");
-			printf(" 3、打开控制面板    4、打开策略组编辑器  5、打开本地用户和组\n");
-			printf(" 6、打开设备管理器  8、查看系统版本      9、打开注册表编辑器\n");
-			printf("10、打开IP地址侦测 11、打开计算机管理   12、打开Directx诊断工具\n");
-			printf("13、打开组件服务   14、打开本地服务     15、打开字符编辑\n\n");
-
-			printf("磁盘管理：\n");
-			printf("16、启动磁盘清理   17、启动磁盘管理     18、启动磁盘检查\n\n");
-
-			printf("系统程序：\n");
-			printf("19、启动资源管理器 20、启动任务管理器   21、启动性能监视器\n");
-			printf("22、启动远程桌面   23、启动记事本       24、启动画图板\n");
-			printf("25、启动写字板     26、启动Media Player 27、启动字符映射表\n");
-			printf("28、启动计算器     29、启动放大镜       30、启动木马捆绑工具\n\n");
-			
-			printf("IP地址：\n");
-			printf("31、查看IP地址     32、关闭IPv6临时地址 33、开启IPv6临时地址\n\n");
-		
-			printf("其他：\n");
-			printf("34、修改hosts	   35、结束程序进程        36、打开彩蛋\n\n");
-			printf("请输入序号：");
-			while (scanf_s("%d", &num) != 1)//处理字符输入
-			{
-				flush();//清空缓冲区残余字符
-				printf("\n输入错误，请重新输入：\n");
-			}
-			flush();
-
-
-			switch (num)
-			{
-			case 1:system("powercfg -h on"); system("pause"); break;
-			case 2:system("powercfg -h off"); system("pause"); break;
-			case 3:system("control");       break;
-			case 4:system("gpedit.msc");    break;
-			case 5:system("lusrmgr.msc");   break;
-			case 6:system("devmgmt.msc");   break;
-			case 7:						    break;
-			case 8:system("winver");        break;
-			case 9:system("regedit");       break;
-			case 10:system("cls && Nslookup"); break;
-			case 11:system("compmgmt.msc"); break;
-			case 12:system("dxdiag");       break;
-			case 13:system("dcomcnfg");     break;
-			case 14:system("services.msc"); break;
-			case 15:system("eudcedit");     break;
-			case 16:system("cleanmgr");     break;
-			case 17:system("diskmgmt.msc"); break;
-			case 18:system("cls && mode con:cols=70 lines=40 && chkdsk.exe");  system("pause"); break;
-			case 19:system("explorer");    break;
-			case 20:system("taskmgr");     break;
-			case 21:system("perfmon.msc"); break;
-			case 22:system("mstsc");       break;
-			case 23:system("notepad");     break;
-			case 24:system("mspaint");     break;
-			case 25:system("write");       break;
-			case 26:system("dvdplay");     break;
-			case 27:system("charmap");     break;
-			case 28:system("calc");        break;
-			case 29:system("magnify");     break;
-			case 30:system("IExpress");    break;
-			case 31:system("cls && ipconfig /all > 本机IP信息.txt && 本机IP信息.txt"); system("pause"); break;
-			case 32:printf("\n\t   "); system("netsh interface ipv6 set privacy state=disable"); system("pause"); break;
-			case 33:printf("\n\t   "); system("netsh interface ipv6 set privacy state=enabled"); system("pause"); break;
-			case 34:hosts();               break;
-			case 35:
-			{
-				char name[50];
-				char process[70] = { "taskkill /f /t /im " };
-				system("cls && tasklist >> 进程信息.txt && 进程信息.txt");
-				remove("进程信息.txt");
-				printf("请输入要结束的进程名称（例如：1.exe）：");
-				gets_s(name, 50);
-				strcat_s(process, sizeof(process), name);
-				system(process);
-				system("pause");
-				break;
-			}
-			case 36:autoshut();            break;
-			case 37:system("start readme.txt");  break;
-			case 38://查看系统信息
-			system("systeminfo >> 系统信息.txt && 系统信息.txt"); system("pause"); break; //将诊断信息导出到当前程序所在的目录并打开系统信息.txt
-			
-			default:printf("\n\n\t输入错误!\n\n"); Sleep(1000); break;
-			}
-			break;
-		}//case 9		
-		
+		case 5:system("shutdown -a"); break;    //取消关机、重启
+		case 6:system("shutdown -l"); return 0; //注销
+		case 7:function();			  break;	//实用功能
+		case 8:system_config();		  break;	//查看电脑配置
+		case 9:system_function();	  break;	//系统管理
 		case 10:system("start https://cdmxz.github.io"); break;
-		
 		default:printf("\n\n\t     输入错误!\n\n"); Sleep(1000); break; //while处理字符错误，switch处理数字错误
 		}//switch
-	
-}//while循环使代码执行后返回开头
+
+	}//while循环使代码执行后返回开头
 		return 0;
 }
+
+
+
+//系统管理
+int  system_function(void)
+{
+	while (1)
+	{
+		system("cls && color 71 && mode con:cols=63 lines=28");
+		system("title 系统管理 PS：输入7返回");
+
+		printf("系统管理：\n");
+		printf(" 1、开启休眠        2、关闭休眠\n");
+		printf(" 3、打开控制面板    4、打开策略组编辑器  5、打开本地用户和组\n");
+		printf(" 6、打开设备管理器  8、查看系统版本      9、打开注册表编辑器\n");
+		printf("10、打开IP地址侦测 11、打开计算机管理   12、打开Directx诊断工具\n");
+		printf("13、打开组件服务   14、打开本地服务     15、打开字符编辑\n\n");
+
+		printf("磁盘管理：\n");
+		printf("16、启动磁盘清理   17、启动磁盘管理     18、启动磁盘检查\n\n");
+
+		printf("系统程序：\n");
+		printf("19、启动资源管理器 20、启动任务管理器   21、启动性能监视器\n");
+		printf("22、启动远程桌面   23、启动记事本       24、启动画图板\n");
+		printf("25、启动写字板     26、启动Media Player 27、启动字符映射表\n");
+		printf("28、启动计算器     29、启动放大镜       30、启动木马捆绑工具\n\n");
+
+		printf("IP地址：\n");
+		printf("31、查看IP地址     32、关闭IPv6临时地址 33、开启IPv6临时地址\n\n");
+
+		printf("其他：\n");
+		printf("34、修改hosts	   35、结束程序进程        36、打开彩蛋\n");
+		printf("37、查看使用说明   38、查看系统信息\n\n");
+		printf("请输入序号：");
+
+		while (scanf_s("%d", &num) != 1)//处理字符输入
+		{
+			flush();//清空缓冲区残余字符
+			printf("\n输入错误，请重新输入：\n");
+		}
+		flush();
+
+
+		switch (num)
+		{
+		case 1:system("powercfg -h on");  system("pause"); break;
+		case 2:system("powercfg -h off"); system("pause"); break;
+		case 3:system("control");       break;
+		case 4:system("gpedit.msc");    break;
+		case 5:system("lusrmgr.msc");   break;
+		case 6:system("devmgmt.msc");   break;
+		case 7:return 0;					
+		case 8:system("winver");        break;
+		case 9:system("regedit");       break;
+		case 10:system("cls && Nslookup"); break;
+		case 11:system("compmgmt.msc"); break;
+		case 12:system("dxdiag");       break;
+		case 13:system("dcomcnfg");     break;
+		case 14:system("services.msc"); break;
+		case 15:system("eudcedit");     break;
+		case 16:system("cleanmgr");     break;
+		case 17:system("diskmgmt.msc"); break;
+		case 18:system("cls && mode con:cols=70 lines=40 && chkdsk.exe");  system("pause"); break;
+		case 19:system("explorer");    break;
+		case 20:system("taskmgr");     break;
+		case 21:system("perfmon.msc"); break;
+		case 22:system("mstsc");       break;
+		case 23:system("notepad");     break;
+		case 24:system("mspaint");     break;
+		case 25:system("write");       break;
+		case 26:system("dvdplay");     break;
+		case 27:system("charmap");     break;
+		case 28:system("calc");        break;
+		case 29:system("magnify");     break;
+		case 30:system("IExpress");    break;
+		case 31:system("cls && ipconfig /all > 本机IP信息.txt && 本机IP信息.txt"); system("pause"); break;
+		case 32:printf("\n\t   "); system("netsh interface ipv6 set privacy state=disable"); system("pause"); break;
+		case 33:printf("\n\t   "); system("netsh interface ipv6 set privacy state=enabled"); system("pause"); break;
+		case 34:hosts();               break;
+		case 35:
+		{
+			char name[50];
+			char process[70] = { "taskkill /f /t /im " };
+			system("cls && tasklist >> 进程信息.txt && 进程信息.txt");
+			printf("请输入要结束的进程名称（例如：1.exe）：");
+			gets_s(name, 50);
+			strcat_s(process, 70, name);
+			system(process);
+			system("pause");
+			break;
+		}
+		case 36:autoshut();            break;
+		case 37:
+		{
+			char path[_MAX_PATH];
+			//GetModuleFileName(NULL, path, MAX_PATH); //调用winapi获得路径
+			_getcwd(path, _MAX_PATH);
+			strcat_s(path, _MAX_PATH, "\\readme.txt");
+			if (_access(path, 0))//判断“redme.txt”文件是否在本程序目录下
+			{//如果不存在则打开网站
+				system("start https://github.com/cdmxz/C-language-program/blob/master/C%E8%AF%AD%E8%A8%80%E7%B3%BB%E7%BB%9F%E7%AE%A1%E7%90%86%E5%B0%8F%E7%A8%8B%E5%BA%8F/readme.txt");
+									   break;
+			}
+			system("start readme.txt"); 
+			break;
+		}
+		case 38:system("systeminfo >> 系统信息.txt && 系统信息.txt"); break; //将诊断信息导出到当前程序所在的目录并打开系统信息.txt
+
+		default:printf("\n\n\t输入错误!\n\n"); Sleep(1000); break;
+		}
+	}//while
+	
+}	
 
 
 
@@ -182,7 +197,7 @@ int main(void)
 void hosts(void)  
 {
 	int  ch;
-	
+
 	while (1)
 	{
 		system("cls && mode con:cols=60 lines=20 && title hosts修改 请以管理员权限打开此软件");
@@ -191,7 +206,7 @@ void hosts(void)
 		printf("          2.如果已经使用管理员权限打开本软件请忽略本提示。");
 		printf("\n\n\n\t      1、用系统默认编辑器打开hosts文件\n\n");
 		printf("\t      2、还原默认hosts文件\n\n");
-		printf("\t      3、返回软件主界面\n\n\n");
+		printf("\t      3、返回上一界面\n\n\n");
 		printf(" 请输入序号：");
 		while (scanf_s("%d", &num) != 1)
 		{
@@ -204,49 +219,45 @@ void hosts(void)
 		if (num == 1)//打开hosts
 		{
 			MessageBox(NULL, TEXT("注意：编辑完hosts文件后请根据本软件的提示：\n“请按任意键继续...”按任意键后再关闭本程序。\n切勿直接关闭本程序，否则会造成hosts文件损坏！"), TEXT("注意："), MB_OK | MB_ICONWARNING);
-			if (rename("C:\\Windows\\System32\\drivers\\etc\\hosts", "C:\\Windows\\System32\\drivers\\etc\\hosts.txt") != 0)//重命名hosts
+			if (rename("C:\\Windows\\System32\\drivers\\etc\\hosts", "C:\\Windows\\System32\\drivers\\etc\\hosts.txt"))//重命名hosts
 			{
-				MessageBox(NULL, TEXT("hosts文件重命名失败！请以管理员权限运行本软件\n或还原默认hosts文件。"), TEXT("error!"), MB_OK | MB_ICONERROR);
+				MessageBox(NULL, TEXT("hosts文件重命名失败！请以管理员权限运行本软件\n或还原默认hosts文件。"), TEXT("Error:"), MB_OK | MB_ICONERROR);
 				continue;
 			}
 
 			system("start C:\\Windows\\System32\\drivers\\etc\\hosts.txt");//打开hosts
-			//printf("注意：编辑完hosts文件后请根据本软件的提示：\n“请按任意键继续...”按任意键后再关闭本程序。\n切勿直接关闭本程序，否则会造成hosts文件损坏！\n\n");
 			printf("\n\n\t\t");
 			system("pause");
 
 
-			if (rename("C:\\Windows\\System32\\drivers\\etc\\hosts.txt", "C:\\Windows\\System32\\drivers\\etc\\hosts") != 0)
+			if (rename("C:\\Windows\\System32\\drivers\\etc\\hosts.txt", "C:\\Windows\\System32\\drivers\\etc\\hosts"))
 			{
-				MessageBox(NULL, TEXT("hosts文件重命名失败！\n请手动进入C:\\Windows\\System32\\drivers\\etc\\\n目录下把“hosts.txt”重命名位“hosts”。"), TEXT("Error!"), MB_OK | MB_ICONERROR);
+				MessageBox(NULL, TEXT("hosts文件重命名失败！\n请手动进入C:\\Windows\\System32\\drivers\\etc\\\n目录下把“hosts.txt”重命名位“hosts”。"), TEXT("Error:"), MB_OK | MB_ICONERROR);
 				system("start C:\\Windows\\System32\\drivers\\etc");
 			}
 		}
 
 		else if (num == 2)//恢复hosts
 		{
-			if (err = fopen_s(&fpRead, "hosts.dll", "rb") != 0)//打开hosts.dll
+			if (err = fopen_s(&fpread, "hosts.dll", "rb") != 0)//打开hosts.dll
 			{
-				MessageBox(NULL, TEXT("打开文件错误！请检查本程序目录下是否有“hosts.dll”。"), TEXT("Error!"), MB_OK | MB_ICONERROR);
+				MessageBox(NULL, TEXT("打开文件错误！请检查本程序目录下是否有“hosts.dll”。"), TEXT("Error:"), MB_OK | MB_ICONERROR);
 				continue;
 			}
-			if (err = fopen_s(&fpWrite, "C:\\Windows\\System32\\drivers\\etc\\hosts", "wb") != 0)//打开hosts
+			if (err = fopen_s(&fpwrite, "C:\\Windows\\System32\\drivers\\etc\\hosts", "wb") != 0)//打开hosts
 			{
-				MessageBox(NULL, TEXT("创建hosts文件失败！请以管理员权限运行本软件！"), TEXT("Error!"), MB_OK | MB_ICONERROR);
-				exit(1);
+				MessageBox(NULL, TEXT("创建hosts文件失败！请以管理员权限运行本软件！"), TEXT("Error:"), MB_OK | MB_ICONERROR);
+				exit(EXIT_FAILURE);
 			}
 
-			while ((ch = fgetc(fpRead)) != EOF)//读取hosts.dll里面的内容写入到hosts
+			while ((ch = fgetc(fpread)) != EOF)//读取hosts.dll里面的内容写入到hosts
 			{
 				ch = ch - 'h' + 's' - 'o';//解密hosts.dll文件里的内容
-				fputc(ch, fpWrite);//写入到hosts
+				fputc(ch, fpwrite);//写入到hosts
 			}
 
-			if (fclose(fpWrite) != EOF || fclose(fpRead) != EOF)//关闭文件
-			{
-				perror("Error:");
-				system("pause");
-			}
+			fclose(fpwrite);
+			fclose(fpread);
 		}
 		
 
@@ -264,39 +275,33 @@ void hosts(void)
 
 
 //获取电脑配置
-int sysconfig(void)
+int system_config(void)
 {
-	
 	int ch;
-
 	system("cls && mode con:cols=90 lines=30");
 
-
-	if ((err = fopen_s(&fpRead, "system.dll", "rb")) != 0)//打开DLL文件
+	if ((err = fopen_s(&fpread, "system.dll", "rb")) != 0)//打开DLL文件
 	{
-		MessageBox(NULL, TEXT("文件打开错误！\n请检查本程序目录下是否有“system.dll”"), TEXT("error!"), MB_OK | MB_ICONERROR);
+		MessageBox(NULL, TEXT("文件打开错误！\n请检查本程序目录下是否有“system.dll”"), TEXT("Error:"), MB_OK | MB_ICONERROR);
 		return 1;
 	}
-	if ((err = fopen_s(&fpWrite, "获取硬件信息.bat", "wb")) != 0)
+	if ((err = fopen_s(&fpwrite, "获取硬件信息.bat", "wb")) != 0)
 	{
-		MessageBox(NULL, TEXT("数据文件创建错误！\n请以管理员权限运行本软件！"), TEXT("error!"), MB_OK | MB_ICONERROR);
-		remove("获取硬件信息.bat");
+		MessageBox(NULL, TEXT("数据文件创建错误！\n请以管理员权限运行本软件！"), TEXT("Error:"), MB_OK | MB_ICONERROR);
 		return 1;             
 	}
 
 	
 	//看到这应该明白了吧，所谓的DLL文件只是一个改了名字的加密文件，哈哈。
-	while ((ch = fgetc(fpRead)) != EOF)  //从文件中读取内容到ch。EOF是文件结束标志。
+	while ((ch = fgetc(fpread)) != EOF)  //从文件中读取内容到ch。EOF是文件结束标志。
 	{
 		ch = ch - 'p' + 'z' - 'i' + 2021;//解密文件内容
-		fputc(ch, fpWrite); //输出解密后的内容到另一个文件
+		fputc(ch, fpwrite); //输出解密后的内容到另一个文件
 	}
 
 	
-	if (fclose(fpWrite) == EOF)//关闭文件
-		remove("获取硬件信息.bat");
-
-	fclose(fpRead);    //关闭文件
+	fclose(fpwrite);   //关闭文件
+	fclose(fpread);    //关闭文件
 
 	//调用API，设置“获取硬件信息”为隐藏文件 
 	SetFileAttributes("获取硬件信息.bat", FILE_ATTRIBUTE_HIDDEN);
@@ -308,8 +313,6 @@ int sysconfig(void)
 	Sleep(5000);
 
 	system("cls && 获取硬件信息.bat");//打开获取硬件信息
-	system("pause");
-	remove("获取硬件信息.bat");//删除文件
 	return 0;
 }
 
@@ -525,7 +528,7 @@ void reboot(void)
 		scanf_s("%s", tmp, 7);
 		flush();
 
-		strcat_s(reboot, sizeof(reboot), tmp);//合并数组
+		strcat_s(reboot, 22, tmp);//合并数组
 		system(reboot);//执行重启命令
 
 		Sleep(1000);
@@ -543,7 +546,7 @@ void reboot(void)
 		scanf_s("%s", reboot, 6);
 		flush();
 
-		strcat_s(schtasks, sizeof(schtasks), reboot);
+		strcat_s(schtasks, 76, reboot);
 		system(schtasks);
 
 		printf("\n\n如果显示“拒绝访问”字样，请以管理员权限运行此软件。\n\n");
@@ -591,9 +594,9 @@ void flush(void)
 }
 
 
+//删除文件
 void  delfile(void)
 {
-	//删除文件
 	remove("本机IP信息.txt");
 	remove("系统信息.txt");
 	remove("获取硬件信息.bat");

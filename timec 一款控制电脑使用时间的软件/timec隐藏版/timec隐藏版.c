@@ -41,9 +41,9 @@ int GetTime(void)
 	{
 		//如果程序目录没有time.dat文件就重新创建
 		if (err = fopen_s(&fp, "time.dat", "w") != 0)
-			return 0;//如果创建失败就返回主函数执行40分钟关机命令
+			return 1;//如果创建失败就返回主函数执行40分钟关机命令
 		fclose(fp); 
-		return 0;
+		return 1;
 	}
 
 	
@@ -55,9 +55,9 @@ int GetTime(void)
 
 	//写入当前年月日时分到字符串
 	sprintf_s(time_now, SIZE, "%02d%02d%02d%02d%02d", t.tm_year + 1900, t.tm_mon + 1, t.tm_mday, t.tm_hour, t.tm_min); 
-	printf("下次此电脑允许启动时间：%s", time_now);
+	//printf("下次此电脑允许启动时间：%s", time_now);
 
-	//从文件读取程序上次关闭时间到time_pre数组
+	//从文件读取程序上次关闭时间到time_pre数组         
 	fgets(time_pre, sizeof(time_now), fp);
 
 	//关闭文件
@@ -100,7 +100,7 @@ void LastTime(void)
 
 		if (min >= 60)
 		{
-			min -= 60;
+			min -= 60; 
 			hour++;
 		}
 		if (hour >= 24)

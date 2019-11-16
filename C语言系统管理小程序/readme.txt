@@ -1,7 +1,7 @@
 本软件说明：
 一个非常简单的C语言控制台程序！
 
-1、本软件的查看电脑配置功能转载自：
+1、本软件的查看电脑配置功能来自：
 http://www.bathome.net/viewthread.php?tid=38259&extra=page%3D1%26amp%3Bfilter%3Dtype%26amp%3Btypeid%3D41  
 感谢原作者的分享。
 
