@@ -83,7 +83,6 @@
   <ItemGroup>
     <ClCompile Include="C语言系统管理程序.c" />
     <ClCompile Include="实用功能.c" />
-    <ClCompile Include="彩蛋.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h" />

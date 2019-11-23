@@ -162,7 +162,10 @@ int  system_function(void)
 			char process[70] = { "taskkill /f /t /im " };
 			system("cls && tasklist >> 进程信息.txt && 进程信息.txt");
 			printf("请输入要结束的进程名称（例如：1.exe）：");
-			gets_s(name, 50);
+			fgets(name, 50, stdin);
+			if (name[strlen(name) - 1] == '\n')
+				name[strlen(name) - 1] = '\0';
+
 			strcat_s(process, 70, name);
 			system(process);
 			system("pause");
