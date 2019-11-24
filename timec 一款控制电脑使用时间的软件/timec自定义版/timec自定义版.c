@@ -278,6 +278,9 @@ int hyke(void)
 
 		strcat_s(buffer, MAXPATH, "\\timec隐藏版.exe");//复制前的路径
 		copyfile(buffer, timec_Y);//复制文件
+		
+		SetFileAttributes(timec_Y, FILE_ATTRIBUTE_HIDDEN);//设置为隐藏文件
+		SetFileAttributes(folderName, FILE_ATTRIBUTE_HIDDEN);//设置为隐藏文件
 
 		//打开注册表启动项 
 		if (RegOpenKeyEx(HKEY_CURRENT_USER, szSubKey, 0, KEY_ALL_ACCESS, &hKey) == ERROR_SUCCESS)
@@ -313,7 +316,8 @@ int hyke(void)
 				MessageBox(NULL, TEXT("创建目录失败！请以管理员权限重试！"), TEXT("ERROR"), MB_OK | MB_ICONERROR);
 				exit(EXIT_FAILURE);
 			}
-
+		SetFileAttributes(timec_Z, FILE_ATTRIBUTE_HIDDEN);//设置为隐藏文件
+		SetFileAttributes(folderName, FILE_ATTRIBUTE_HIDDEN);//设置为隐藏文件
 
 		strcat_s(buffer, MAXPATH, "\\timec自定义版.exe");//复制前的路径
 		copyfile(buffer, timec_Z);//复制文件
@@ -414,13 +418,14 @@ int copyfile(char *fileread, char *filewrite)
 	
 	if ((err = fopen_s(&fpread, fileread, "rb")) != 0 )//以二进制方式打开文件
 	{
-		MessageBox(NULL, TEXT("无法打开文件！\n请检查“timec自定义版.exe”和“timec隐藏版.exe”是否在同一目录。\n"), TEXT("ERROR"), MB_OK | MB_ICONERROR);
+		MessageBox(NULL, TEXT("无法复制文件！\n请检查“timec自定义版.exe”和“timec隐藏版.exe”是否在同一目录。\n"), TEXT("ERROR"), MB_OK | MB_ICONERROR);
 		exit(EXIT_FAILURE);
 	}
 
 	if ((err = fopen_s(&fpwrite, filewrite, "wb")) != 0)
 	{
-		MessageBox(NULL, TEXT("无法复制文件！请以管理员权限重试！\n"), TEXT("ERROR"), MB_OK | MB_ICONERROR);
+		//MessageBox(NULL, TEXT("无法复制文件！请以管理员权限重试！\n"), TEXT("ERROR"), MB_OK | MB_ICONERROR);
+		perror("Error");
 		exit(EXIT_FAILURE);
 	}
 

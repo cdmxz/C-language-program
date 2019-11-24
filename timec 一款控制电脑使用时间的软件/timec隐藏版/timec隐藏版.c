@@ -31,6 +31,7 @@ int main(void)
 		ShowWindow(hwnd, SW_HIDE);
 
 	char folder_name[] = { "C:\\Program Files\\timec" };
+	
 	//创建数据文件夹
 	if (_access(folder_name, 0)) //判断文件夹是否存在
 		_mkdir(folder_name);	 //不存在则创建
@@ -40,8 +41,9 @@ int main(void)
 	ShutDown();
 
 	//调用windows api隐藏文件
-	SetFileAttributes(time_path, FILE_ATTRIBUTE_HIDDEN);
 	SetFileAttributes(folder_name, FILE_ATTRIBUTE_HIDDEN);
+	SetFileAttributes(time_path, FILE_ATTRIBUTE_HIDDEN);
+	
 
 	/*system("shutdown -s -t 2400");//执行40分钟关机命令
 	Sleep(2220000);//等待37分后提示用户还有3分钟就要关机
@@ -70,6 +72,7 @@ int GetTime(void)
 	time(&now);
 	p = localtime(&now);
 
+
 	//写入当前时间到字符串“time_now”
 	sprintf_s(time_now, SIZE, "%02d%02d%02d%02d%02d", p->tm_year + 1900, p->tm_mon + 1, p->tm_mday, p->tm_hour, p->tm_min);
 	
@@ -82,10 +85,12 @@ int GetTime(void)
 		fclose(fp);
 		return 0;
 	}
+
 	//从文件读取程序上次关闭时间到time_pre数组         
 	fgets(time_pre, SIZE, fp);
-	//关闭文件
 	fclose(fp); 
+
+
 	//判断当前时间是否小于电脑能启动的时间
 	if (strcmp(time_pre, time_now) > 0)
 	{
@@ -156,7 +161,7 @@ void LastTime(void)
 				mon++;
 			}
 		}
-		else if (mon == 4 || mon == 6 || mon == 9 || mon == 11)//判断当前月份是否为小月
+		else if (mon == 4 || mon == 6 || mon == 9 || mon == 11)     //判断当前月份是否为小月
 		{
 			if (day > 30)
 			{
@@ -173,7 +178,7 @@ void LastTime(void)
 			mon++;
 		}
 
-		if (mon > 12)//判断当前月份是否超过12月
+		if (mon > 12)     //判断当前月份是否超过12月
 		{
 			mon -= 12;
 			year++;
@@ -186,7 +191,7 @@ void LastTime(void)
 		//向文件写入电脑下次能运行时间
 		fprintf(fp, "%02d%02d%02d%02d%02d\n", year, mon, day, hour, min);
 		//向文件写入提示信息
-		fprintf(fp, "当前为休息时间,下次此电脑允许启动时间为：%02d年%02d月%02d日%02d时%02d分。    电脑即将在10秒内关机！", year, mon, day, hour, min);   //写入年月日小时分钟
+		fprintf(fp, "当前为休息时间,下次此电脑允许启动时间为：%02d年%02d月%02d日%02d时%02d分。    电脑即将在10秒内关机！", year, mon, day, hour, min);   
 		fclose(fp);
 
 		printf("下次此电脑允许启动时间为：%02d年%02d月%02d日%02d时%02d分。\n", year, mon, day, hour, min);
@@ -205,12 +210,13 @@ void ShutDown(void)
 	FILE *fp;
 	errno_t err;
 
+
 	//从配置文件读取内容
-	if (!_access(config_file, 0)) //判断文件是否存在
-		if (!(err = fopen_s(&fp, config_file, "r")))//判断文件是否正常打开
+	if (!_access(config_file, 0))                     //判断文件是否存在
+		if (!(err = fopen_s(&fp, config_file, "r")))  //判断文件是否正常打开
 		{
-			if ((ch = fgetc(fp)) != EOF)//判断文件是否为空
-				fscanf_s(fp, "%*s %*s %d", &off_time);
+			if ((ch = fgetc(fp)) != EOF)			  //判断文件是否为空
+				fscanf_s(fp, "%*s %*s %d", &off_time);//前面两个%*s的意思是忽略读取的内容
 			fclose(fp);
 		}
 
@@ -235,16 +241,16 @@ int read_file(void)
 	errno_t err;
 
 	//从配置文件读取内容
-	if (!_access(config_file, 0)) //判断文件是否存在
+	if (!_access(config_file, 0))     //判断文件是否存在
 	{
 		if ((err = fopen_s(&fp, config_file, "r")) != 0)//判断文件是否正常打开
 			return 	off_time += break_time;
 
-		if ((ch = fgetc(fp)) != EOF)//判断文件是否为空
+		if ((ch = fgetc(fp)) != EOF)  //判断文件是否为空
 			do
 			{
 				ch = fgetc(fp);
-				if (ch == '=')//判断ch是否为“=”
+				if (ch == '=')        //判断ch是否为“=”
 					while ((ch = fgetc(fp)) != ';')
 					{
 						if (ch == ' ')//丢弃读取的空格
@@ -252,15 +258,15 @@ int read_file(void)
 						config[i] = ch;
 						i++;
 					}
-				if (ch == '\n')//判断是否读到第二行
+				if (ch == '\n')       //判断是否读到第二行
 				{
 					i = 0;
-					if (j < 2)
+					if (j < 2)        //这里是防止ch读取到第三行
 						sscanf_s(config, "%d", &off_time);//把第一行的内容保存到off_time，第一行的内容是电脑能运行的时间
 					j++;
 				}
 			} while (ch != EOF);
-			sscanf_s(config, "%d", &break_time);//把第二行的内容保存到break_time，第二行的内容是电脑关机后休息的时间
+			sscanf_s(config, "%d", &break_time);          //把第二行的内容保存到break_time，第二行的内容是电脑关机后休息的时间
 			fclose(fp);
 	}
 	else
@@ -272,9 +278,9 @@ int read_file(void)
 		}
 	}
 
-	printf("能运行时间 = %d分, 休息时间 = %d分, ", off_time, break_time);
+	//printf("能运行时间 = %d分, 休息时间 = %d分, ", off_time, break_time);
 	off_time += break_time;
-	printf("总计 = %d分。\n", off_time);
+	//printf("总计 = %d分。\n", off_time);
 
 	return off_time;
 }
