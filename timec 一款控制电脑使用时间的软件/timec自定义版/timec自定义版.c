@@ -7,15 +7,16 @@
 #define MAXPATH 512
 #define SIZE 6
 
-int  password(void);     //验证密码
-void shut(void);     //自定义关机
-void open_readmetxt(void); //查看使用说明
-void hwn(void);      //隐藏窗口
-void countDown(void);//弹出提示框
-int  hyke(void);     //注册表
-void flush(void);    //清除缓冲区
+int  password(void);       //验证密码
+void shut_down(void);      //自定义关机
+void open_readme_txt(void);//查看使用说明
+void hwn(void);			   //隐藏窗口
+void countdown(void);	   //弹出提示框
+int  add_start(void);	   //添加自启动
+void flush(void);		   //清除缓冲区
 //复制文件
 int  copyfile(char *fileread, char *filewrite);
+//删除自启动验证密码
 void del_start_password(void);
 
 int main(void)
@@ -52,15 +53,15 @@ int main(void)
 		switch (time)
 		{
 		case 0:password(); break;
-		case 1:system("shutdown -s -t 600"); hwn(); countDown(); break;
-		case 2:system("shutdown -s -t 1800"); hwn(); Sleep(1200000); countDown(); break;
-		case 3:system("shutdown -s -t 3000"); hwn(); Sleep(2400000); countDown(); break;
-		case 4:system("shutdown -s -t 3600"); hwn(); Sleep(3000000); countDown(); break;
-		case 5:system("shutdown -s -t 4800"); hwn(); Sleep(4200000); countDown(); break;
-		case 6:system("shutdown -s -t 6000"); hwn(); Sleep(5400000); countDown(); break;
-		case 7:shut(); break;
-		case 8:open_readmetxt(); break;
-		case 9:hyke(); break;
+		case 1:system("shutdown -s -t 600"); hwn(); countdown(); break;
+		case 2:system("shutdown -s -t 1800"); hwn(); Sleep(1200000); countdown(); break;
+		case 3:system("shutdown -s -t 3000"); hwn(); Sleep(2400000); countdown(); break;
+		case 4:system("shutdown -s -t 3600"); hwn(); Sleep(3000000); countdown(); break;
+		case 5:system("shutdown -s -t 4800"); hwn(); Sleep(4200000); countdown(); break;
+		case 6:system("shutdown -s -t 6000"); hwn(); Sleep(5400000); countdown(); break;
+		case 7:shut_down(); break;
+		case 8:open_readme_txt(); break;
+		case 9:add_start(); break;
 		case 10:exit(EXIT_SUCCESS); break;
 		}
 	}
@@ -146,7 +147,7 @@ int password(void)//密码验证
 
 		if ((err = fopen_s(&fpread, "Password.dat", "r")) != 0)//打开记录密码的文件,并且判断文件是否正常打开
 		{
-			MessageBox(NULL, TEXT("密码文件读取错误！\n请检查程序本目录是否有“Password.dat”文件。如果没有，请修改密码。"), TEXT("ERROR"), MB_OK | MB_ICONERROR);//弹出提示框
+			MessageBox(NULL, TEXT("密码文件读取错误！\n请检查本程序目录是否有“Password.dat”这个文件。如果没有，请修改密码。"), TEXT("ERROR"), MB_OK | MB_ICONERROR);//弹出提示框
 			return 1;
 		}
 
@@ -173,7 +174,7 @@ int password(void)//密码验证
 
 
 //查看使用说明
-void open_readmetxt(void)
+void open_readme_txt(void)
 {
 	char path[MAXPATH];
 
@@ -196,7 +197,7 @@ void hwn(void)//隐藏窗口
 }
 
 
-void countDown(void)
+void countdown(void)
 {
 	MessageBox(NULL, TEXT("您的电脑还有10分钟就要关机了\n请做好关机准备！"), TEXT("温馨提示"), MB_OK | MB_ICONWARNING);
 }
@@ -204,7 +205,7 @@ void countDown(void)
 
 
 //自定义关机
-void shut(void)
+void shut_down(void)
 {
 	char shut[25] = { "shutdown -s -t " };
 	char temp[7] = { 0 };
@@ -227,7 +228,7 @@ void shut(void)
 
 
 //添加注册表
-int hyke(void)
+int add_start(void)
 {
 	system("cls && title 添加自启动 PS：输入7返回主界面");
 
@@ -470,7 +471,7 @@ void del_start_password(void)//删除自启动验证密码
 
 		if ((err = fopen_s(&fpread, "Password.dat", "r")) != 0)//打开记录密码的文件,并且判断文件是否正常打开
 		{
-			MessageBox(NULL, TEXT("密码文件读取错误！\n请检查程序本目录是否有“Password.dat”文件。如果没有，请修改密码。"), TEXT("ERROR"), MB_OK | MB_ICONERROR);//弹出提示框
+			MessageBox(NULL, TEXT("密码文件读取错误！\n请检查本程序目录是否有“Password.dat”这个文件。如果没有，请修改密码。"), TEXT("ERROR"), MB_OK | MB_ICONERROR);//弹出提示框
 			exit(EXIT_SUCCESS);
 		}
 

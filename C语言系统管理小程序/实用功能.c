@@ -87,7 +87,7 @@ void encfile(void)
 {
 	int ch;
 	char filename[MAXPATH];   //储存待加密或待解密文件名称
-	FILE *fpRead, *fpWrite;
+	FILE *fpread, *fpwrite;
 	errno_t err;
 
 
@@ -137,41 +137,32 @@ void encfile(void)
 			if (!strcmp(filename, "000"))   //输入000返回主界面
 				continue;
 
-			if ((err = fopen_s(&fpRead, filename, "rb")) != 0)//以读的方式打开文件
+			if ((err = fopen_s(&fpread, filename, "rb")) != 0)//以读的方式打开文件
 			{
-				perror("Error");
+				perror("\n错误（看不懂请使用翻译软件翻译）");
 				system("pause");
 				continue;
 			}
 
 			strcat_s(filename, MAXPATH, ".fh");//给加密后的文件添加后缀名
 
-			if ((err = fopen_s(&fpWrite, filename, "wb")) != 0)//以写的方式打开文件
+			if ((err = fopen_s(&fpwrite, filename, "wb")) != 0)//以写的方式打开文件
 			{
-				perror("Error:");
+				perror("\n错误（看不懂请使用翻译软件翻译）");
 				system("pause");
 				exit(EXIT_FAILURE);
 			}
 
 			printf("\n\n\t\t\t请稍等...");
 
-			while ((ch = fgetc(fpRead)) != EOF)  //从文件中读取内容到ch。EOF是文件结束标志。
+			while ((ch = fgetc(fpread)) != EOF)  //从文件中读取内容到ch。EOF是文件结束标志。
 			{
 				ch = ch + ' ' - 9 + '9';//加密文件内容
-				fputc(ch, fpWrite);//输出加密后的内容到另一个文件
+				fputc(ch, fpwrite);//输出加密后的内容到另一个文件
 			}
 
-
-			if (fclose(fpRead) == EOF)//关闭文件
-			{
-				MessageBox(NULL, TEXT("关闭待加密文件失败！\n请检查是否有其它程序占用！"), TEXT("错误！"), MB_OK | MB_ICONERROR);
-				exit(EXIT_FAILURE);
-			}
-			if (fclose(fpWrite) == EOF)//关闭文件
-			{
-				MessageBox(NULL, TEXT("关闭已加密文件失败！\n请检查是否有其它程序占用！"), TEXT("错误！"), MB_OK | MB_ICONERROR);
-				exit(EXIT_FAILURE);
-			}
+			fclose(fpread);
+			fclose(fpwrite);
 
 			system("cls");
 			printf("\n\n\n已加密：%s\n\n\t\t    ", filename);//输出文件名
@@ -206,9 +197,9 @@ void encfile(void)
 			if (!strcmp(filename, "000"))//输入000返回主界面
 				continue;
 
-			if ((err = fopen_s(&fpRead, filename, "rb")) != 0) //以读的方式打开文件
+			if ((err = fopen_s(&fpread, filename, "rb")) != 0) //以读的方式打开文件
 			{
-				MessageBox(NULL, TEXT("打开文件失败！\n请检查待加密的文件是否和本程序在同一目录，\n或检查文件名称是否正确！"), TEXT("错误！"), MB_OK | MB_ICONERROR);
+				MessageBox(NULL, TEXT("打开文件失败！\n请检查待加密的文件是否和本程序在同一目录，\n或检查文件名称是否正确！"), TEXT("Error"), MB_OK | MB_ICONERROR);
 				continue;
 			}
 
@@ -237,34 +228,25 @@ void encfile(void)
 				}
 			}
 
-			if ((err = fopen_s(&fpWrite, filename, "wb")) != 0)//以写的方式打开文件
+			if ((err = fopen_s(&fpwrite, filename, "wb")) != 0)//以写的方式打开文件
 			{
-				perror("Error");
+				perror("\n错误（看不懂请使用翻译软件翻译）");
 				system("pause");
 				exit(EXIT_FAILURE);
 			}
 
 			printf("\n\n\t\t\t请稍等...");
 
-			while ((ch = fgetc(fpRead)) != EOF)  //从文件中读取内容到ch。EOF是文件结束标志。
+			while ((ch = fgetc(fpread)) != EOF)  //从文件中读取内容到ch
 			{
 				ch = ch - ' ' + 9 - '9';//解密文件内容
-				fputc(ch, fpWrite);//输出解密后的内容到另一个文件
+				fputc(ch, fpwrite);//输出解密后的内容到另一个文件
 			}
 
 
-			if (fclose(fpRead) == EOF)//关闭文件
-			{
-				MessageBox(NULL, TEXT("关闭待解密文件失败！\n请检查是否有其它程序占用！"), TEXT("错误！"), MB_OK | MB_ICONERROR);
-				exit(EXIT_FAILURE);
-			}
-			if (fclose(fpWrite) == EOF)//关闭文件
-			{
-				MessageBox(NULL, TEXT("关闭已解密文件失败！\n请检查是否有其它程序占用！"), TEXT("错误！"), MB_OK | MB_ICONERROR);
-				exit(EXIT_FAILURE);
-			}
-
-
+			fclose(fpread);//关闭文件
+			fclose(fpwrite);
+			
 			system("cls");
 			printf("\n\n\n已加密：%s\n\n\t\t    ", filename);//输出文件名
 			system("pause");
@@ -282,9 +264,22 @@ void encfile(void)
 			fgets_n(word);
 
 			for (i = 0; i < strlen(word); i++)//加密字符串
-				word[i] += 1;
-
-			printf("\n\n加密后的密文是：%s\n\n", word);
+				word[i] += 115;
+			
+			//写入文件
+			if ((err = fopen_s(&fpwrite, "加密后的密文.txt", "w")) != 0) 
+			{
+				i = MessageBox(NULL, TEXT("创建文件失败！\n是否直接输入（可能会导致显示不完全）？"), TEXT("Error"), MB_YESNO | MB_ICONERROR);
+				if(i == IDNO)
+					continue;
+				else if (i == IDYES)
+					printf("\n\n加密后的密文是：%s\n\n", word);
+				continue;
+			}
+			fputs(word, fpwrite);//将加密后的内容写入文件
+			fclose(fpwrite);
+			printf("\n\n请打开本程序目录中的“加密后的密文.txt”查看\n\n");
+			system("start 加密后的密文.txt");
 			system("pause");
 		}
 
@@ -300,9 +295,22 @@ void encfile(void)
 			fgets_n(word);
 
 			for (i = 0; i < strlen(word); i++)//解密字符串
-				word[i] -= 1;
-
-			printf("\n\n解密后的明文是：%s\n\n", word);
+				word[i] -= 115;
+			
+			//写入文件
+			if ((err = fopen_s(&fpwrite, "解密后的明文.txt", "w")) != 0) 
+			{
+				i = MessageBox(NULL, TEXT("创建文件失败！\n是否直接显示（可能会导致显示不完全）？"), TEXT("Error"), MB_YESNO | MB_ICONERROR);
+				if (i == IDNO)
+					continue;
+				else if (i == IDYES)
+					printf("\n\n解密后的明文是：%s\n\n", word);
+				continue;
+			}
+			fputs(word, fpwrite);//将解密后的内容写入文件
+			fclose(fpwrite);
+			printf("\n\n请打开本程序目录中的“解密后的明文.txt”查看\n\n");
+			system("start 解密后的明文.txt");
 			system("pause");
 		}
 
@@ -529,7 +537,8 @@ void bin(void)
 //ascii码转字符
 void ascii(void)
 {
-	int ascii;
+	int ascii, i = 0;
+	char ch;
 
 	while (1)
 	{
@@ -547,19 +556,31 @@ void ascii(void)
 
 		if (ascii == 0)
 			break;
-		if (ascii > 127)
-		{
-			printf("\n\n输入最大不能大于127");
-			Sleep(1000);
-		}
-		if (ascii < 0)
-		{
-			printf("\n\n输入最小不能小于0");
-			Sleep(1000);
-		}
 
 		printf("\n\n\n\n      ASCII码 %d 对应的字符为：%c\n\n", ascii, ascii);
 		printf("（如显示“□”则为控制字符）\n\n");
+
+		i++;
+		if (i == 3)
+		{
+			printf("\n\n\t       是否返回上一界面？（Y/N）");
+			scanf_s("%c", &ch, 1);
+			flush();
+			if (ch == 121 || ch == 89)
+				break;
+			else if (ch == 110 || ch == 78)
+			{
+				i = 0;
+				continue;
+			}
+			else
+			{
+				i = 0;
+				printf("\n\n\t\t\t输入错误！");
+				Sleep(1000);
+				continue;
+			}
+		}
 		system("pause");
 	}
 }
@@ -791,7 +812,7 @@ int delstart(void)
 }
 
 
-//删除fgets的换行符
+//删除fgets读取的换行符
 void fgets_n(char *n)
 {
 	char *find;
@@ -807,9 +828,11 @@ int autoshut(void)
 	system("title 现在退出此程序或关闭电脑还来得及！");
 
 	int i;
-	char pass[7] = { "115-56" };//密码
-	char tmp[7] = { 0 };
-	char wanging[] = { "警告：此内容不适合孕妇以及患有心脏病、高血压、癫痫、脑血管病、神经错乱、哮喘、酗酒、吸毒者等人士访问！现在退出此程序或关闭电脑还来得及！如果硬要访问，后果自负！" };
+	char password[7] = { "115-56" };//密码
+	char temp[7];
+
+	char wanging_zero[] = { "警告：此内容不适合孕妇以及患有心脏病、高血压、癫痫、脑血管病、神经错乱、哮喘、酗酒、吸毒者等人士访问！"
+		"现在退出此程序或关闭电脑还来得及！如果硬要访问，后果自负！" };
 
 	char warning_one[] = { "警告：此内容不适合孕妇以及患有心脏病、高血压、癫痫、脑血管病、神经错乱、哮喘、酗酒、吸毒者等人士访问！"
 		"现在退出此程序或关闭电脑还来得及！如果硬要访问，后果自负！\n\t\t\t\t是否继续访问？" };
@@ -829,7 +852,7 @@ int autoshut(void)
 		for (i = 10; i >= 0; i--)
 		{
 			system("cls");
-			printf("\n\n\n\n\n\n\n\n%s", wanging);
+			printf("\n\n\n\n\n\n\n\n%s", wanging_zero);
 			printf("\n\n\n     将在%d秒后进入，现在退出此程序或关闭电脑还来得及！", i);
 			Sleep(1000);
 		}
@@ -853,10 +876,10 @@ int autoshut(void)
 			printf("温馨提示：你只剩下%d次机会。\n", i);
 			printf("请输入密码（输入密码后别忘了按回车）:");
 
-			scanf_s("%s", &tmp, 7);
+			scanf_s("%s", &temp, 7);
 			flush();//清除缓冲区残留字符
 
-			if (!strcmp(tmp, pass))//将密码进行比较
+			if (!strcmp(temp, password))//将密码进行比较
 			{
 				system("color 0f && cls");
 				printf("\n\n\n\n\n\n\n\n\n\t    恭喜您，密码正确，您的电脑和宝贵的数据不会嗝屁。\n\n");

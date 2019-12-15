@@ -1,4 +1,4 @@
-//项目创建时间：2019年1月29日  目前最后修改时间：2019年11月16日
+//项目创建时间：2019年1月29日  目前最后修改时间：2019年12月15日
 #include <stdio.h>
 #include <stdlib.h>
 #include <Windows.h>
@@ -93,7 +93,7 @@ int  system_function(void)
 		printf(" 3、打开控制面板    4、打开策略组编辑器  5、打开本地用户和组\n");
 		printf(" 6、打开设备管理器  8、查看系统版本      9、打开注册表编辑器\n");
 		printf("10、打开IP地址侦测 11、打开计算机管理   12、打开Directx诊断工具\n");
-		printf("13、打开组件服务   14、打开本地服务     15、打开字符编辑\n\n");
+		printf("13、打开组件服务   14、打开本地服务     15、清除DNS缓存\n\n");
 
 		printf("磁盘管理：\n");
 		printf("16、启动磁盘清理   17、启动磁盘管理     18、启动磁盘检查\n\n");
@@ -136,7 +136,7 @@ int  system_function(void)
 		case 12:system("dxdiag");       break;
 		case 13:system("dcomcnfg");     break;
 		case 14:system("services.msc"); break;
-		case 15:system("eudcedit");     break;
+		case 15:system("ipconfig /flushdns"); system("pause"); break;
 		case 16:system("cleanmgr");     break;
 		case 17:system("diskmgmt.msc"); break;
 		case 18:system("cls && mode con:cols=70 lines=40 && chkdsk.exe");  system("pause"); break;
