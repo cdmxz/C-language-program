@@ -1,4 +1,4 @@
-# C语言程序 ｜　C-language-program　
+# C语言程序 
 
 一些非常简单的C语言控制台程序。　
 
