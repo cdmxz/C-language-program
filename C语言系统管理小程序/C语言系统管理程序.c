@@ -200,6 +200,27 @@ int  system_function(void)
 void hosts(void)  
 {
 	int  ch;
+	char host[] = { "# Copyright (c) 1993-2009 Microsoft Corp.\n"
+"#\n"
+"# This is a sample HOSTS file used by Microsoft TCP/IP for Windows.\n"
+"#\n"
+"# This file contains the mappings of IP addresses to host names. Each\n"
+"# entry should be kept on an individual line. The IP address should\n"
+"# be placed in the first column followed by the corresponding host name.\n"
+"# The IP address and the host name should be separated by at least one\n"
+"# space.\n"
+"#\n"
+"# Additionally, comments (such as these) may be inserted on individual\n"
+"# lines or following the machine name denoted by a '#' symbol.\n"
+"#\n"
+"# For example:\n"
+"#\n"
+"#      102.54.94.97     rhino.acme.com          # source server\n"
+"#       38.25.63.10     x.acme.com              # x client host\n"
+"\n"
+"# localhost name resolution is handled within DNS itself.\n"
+"#	127.0.0.1       localhost\n"
+"#	::1             localhost\n" };
 
 	while (1)
 	{
@@ -242,25 +263,22 @@ void hosts(void)
 
 		else if (num == 2)//恢复hosts
 		{
-			if (err = fopen_s(&fpread, "hosts.dll", "rb") != 0)//打开hosts.dll
-			{
-				MessageBox(NULL, TEXT("打开文件错误！请检查本程序目录下是否有“hosts.dll”。"), TEXT("Error:"), MB_OK | MB_ICONERROR);
-				continue;
-			}
-			if (err = fopen_s(&fpwrite, "C:\\Windows\\System32\\drivers\\etc\\hosts", "wb") != 0)//打开hosts
+			if (err = fopen_s(&fpwrite, "C:\\Windows\\System32\\drivers\\etc\\hosts", "w") != 0)//打开hosts
 			{
 				MessageBox(NULL, TEXT("创建hosts文件失败！请以管理员权限运行本软件！"), TEXT("Error:"), MB_OK | MB_ICONERROR);
 				exit(EXIT_FAILURE);
 			}
 
-			while ((ch = fgetc(fpread)) != EOF)//读取hosts.dll里面的内容写入到hosts
+			if (fputs(host, fpwrite) == EOF)
 			{
-				ch = ch - 'h' + 's' - 'o';//解密hosts.dll文件里的内容
-				fputc(ch, fpwrite);//写入到hosts
+				printf("\n恢复默认hosts失败！请以管理员权限重试！\n\n");
+				fclose(fpwrite);
+				system("pause");
+				continue;
 			}
-
+			printf("\n\t\t恢复默认hosts成功！\n\n");
 			fclose(fpwrite);
-			fclose(fpread);
+			system("pause");
 		}
 		
 
