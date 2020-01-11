@@ -247,9 +247,13 @@ int add_start(void)
 	int i;
 	char ch;
 
-	printf("\n\t输入3查看使用帮助，输入4删除自启动\n\n");
-	printf("请输入要添加自启动的版本：\n\n");
-	printf("\t（1.timec隐藏版 2.timec自定义版）\n\n\n\n");
+	printf("注意：添加或删除自启动前请以管理员权限运行本软件。\n\n");
+	printf("\t      1、添加timec隐藏版自启动\n\n");
+	printf("\t      2、添加timec自定义版自启动\n\n");
+	printf("\t      3、查看使用帮助\n\n");
+	printf("\t      4、删除自启动\n\n");
+	printf("\t      5、重新设置timec隐藏版配置文件\n\n");
+
 	printf("    请输入序号：");
 	
 	while (scanf_s("%d", &i) != 1)//处理字符输入
@@ -393,6 +397,174 @@ int add_start(void)
 		system("reg delete \"HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\"  /v timeczidingyi /f");
 		
 		putchar('\n');
+		system("pause");
+		break;
+	}
+
+	case 5://重新设置配置文件
+	{
+	
+		system("title 重新设置timec隐藏版配置文件 && mode con cols=72 lines=17");
+
+		int  i, front_hour, front_min, behind_hour, behind_min;
+		char config_content[350] = { "run time = " }; //储存将要写入配置文件的内容
+		char temp_time_period[15], time_period[15];   //储存能运行的时间段
+		char run_time[5], break_time[5];	          //储存能运行的时间和休息时间
+		char config_file_path[] = { "C:\\Users\\Timec_config.txt" };
+		char *find;
+		FILE *fpwrite;
+		errno_t err;
+
+
+
+		printf("\n\n请输入电脑能运行的时间段（格式：xx:xx - xx:xx，请不要输入中文标点。\n温馨提示：输入00:00 - 00:00不限制时间段运行。）：");
+		while (1)
+		{
+			for (i = 0; i < 15; i++)
+				temp_time_period[i] = time_period[i] = '\0';
+
+			fgets(time_period, 15, stdin);
+			rewind(stdin);
+			
+			if ((find = strchr(time_period, '\n')))//清除fgets读取的'\n'
+				*find = '\0';
+
+			for (i = 0; i < 15; i++)//把time_period的内容复制到temp_time_period
+				temp_time_period[i] = time_period[i];
+
+			//判断输入的格式是否正确
+			if (strlen(time_period) != 13 || time_period[6] != '-')//判断输入格式是xx:xx-xx:xx还是xx:xx - xx:xx
+				if (strlen(time_period) != 11 || time_period[5] != '-')
+				{
+					printf("\n格式错误（例如：08:00 - 14:00），请重试：");
+					continue;
+				}
+
+			for (i = 0; i < 15; i++)
+				if (time_period[i] == ':' || time_period[i] == '-')
+					time_period[i] = ' ';
+
+			sscanf_s(time_period, "%d %d %d %d", &front_hour, &front_min, &behind_hour, &behind_min);
+			//判断输入的时刻是否有误
+			if ((front_hour > 24 || front_hour < 0) || (behind_hour > 24 || behind_hour < 0) || (front_min > 60 || front_min < 0) || (behind_min > 60 || behind_min < 0))
+			{
+				printf("\n格式错误（例如：08:00 - 14:00），请重试：");
+				continue;
+			}
+			if (front_hour == 24 || behind_hour == 24)//判断两个时刻小时部分是否为24
+			{
+				if (front_hour == 24 && behind_hour == 24)//判断两个时刻小时部分是否都为24
+				{
+					temp_time_period[1] = temp_time_period[0] = '0';
+					if (time_period[8] == '2' && time_period[9] == '4')
+						temp_time_period[9] = temp_time_period[8] = '0';
+					else
+						temp_time_period[7] = temp_time_period[6] = '0';
+					printf("\n格式错误，应输入为：%s。请重试：", temp_time_period);
+				}
+				else if (front_hour == 24)//判断前时刻小时部分是否为24
+				{
+					temp_time_period[1] = temp_time_period[0] = '0';
+					printf("\n格式错误，应输入为：%s。请重试：", temp_time_period);
+				}
+				else if (behind_hour == 24)//判断后时刻小时部分是否为24
+				{
+					if (time_period[8] == '2' && time_period[9] == '4')
+						temp_time_period[9] = temp_time_period[8] = '0';
+					else
+						temp_time_period[7] = temp_time_period[6] = '0';
+					printf("\n格式错误，后时刻应输入为：%s。请重试：", temp_time_period);
+				}
+				continue;
+			}
+
+			//判断输入是否为00:00 - 00:00
+			if (front_hour == 0 && behind_hour == 0 && front_min == 0 && behind_min == 0)
+				break;
+
+			//判断后时刻是否比前时刻大
+			if (front_hour > behind_hour)
+			{
+				printf("\n前时刻要比后时刻小，请重试：");
+				continue;
+			}
+			else if (front_hour == behind_hour)
+			{
+				if (front_min > behind_min)
+				{
+					printf("\n前时刻要比后时刻小。请重试：");
+					continue;
+				}
+				else if (front_min == behind_min)
+				{
+					printf("\n前时刻要比后时刻小，且不能相等。请重试：");
+					continue;
+				}
+			}
+
+			//判断前时刻与后时刻是否相差小于5分钟
+			front_hour = (front_hour * 3600) + (front_min * 60);
+			behind_hour = (behind_hour * 3600) + (behind_min * 60);
+			if ((behind_hour - front_hour) < 300)
+			{
+				printf("\n前时刻与后时刻必须相差5分钟。请重试：");
+				continue;
+			}
+			break;
+		}
+
+		printf("\n\n请输入电脑能运行的时间\n（也就是电脑运行XX分钟后强制关机。单位：分钟）：");
+		while (1)
+		{
+			while (scanf_s("%d", &i) != 1)
+			{
+				printf("\n输入错误，请重试：");
+				flush();
+			}
+			flush();
+			if (i > 999)
+			{
+				printf("\n最大值不能超过999，请重新输入：");
+				continue;
+			}
+			sprintf_s(run_time, 5, "%d", i);
+			break;
+		}
+
+		printf("\n\n请输入电脑休息时间\n（也就是电脑强制关机后需要在XX分钟后才能使用。单位：分钟）：");
+		while (1)
+		{
+			while (scanf_s("%d", &i) != 1)
+			{
+				printf("\n输入错误，请重试：");
+				flush();
+			}
+			flush();
+			if (i > 999)
+			{
+				printf("\n最大值不能超过999，请重新输入：");
+				continue;
+			}
+			sprintf_s(break_time, 5, "%d", i);
+			break;
+		}
+		//创建数据文件
+		strcat_s(config_content, 350, run_time);
+		strcat_s(config_content, 350, " ;     电脑能运行的时间。\nbreak time = ");
+		strcat_s(config_content, 350, break_time);
+		strcat_s(config_content, 350, " ;   电脑休息的时间。\ntime period = ");
+		strcat_s(config_content, 350, temp_time_period);
+		strcat_s(config_content, 350, " ;   电脑能运行的时间段。\n\n注意：“run time”和“break time”两项值的单位都为分，值范围5~999。\n“time period”项值的格式为“xx:xx-xx:xx”，请不要输入中文标点（如：“：”）。\n更改请保留原格式，如果出现程序不能正常运行，请删除此文件。");
+		if ((err = fopen_s(&fpwrite, config_file_path, "w")) != 0)
+		{
+			perror("\n创建配置文件失败");
+			system("pause");
+			exit(EXIT_FAILURE);
+		}
+		fputs(config_content, fpwrite);
+		fclose(fpwrite);
+
+		printf("\n\t\t\t\t设置成功！\n\t\t\t     ");
 		system("pause");
 		break;
 	}
