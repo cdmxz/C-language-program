@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="C语言系统管理程序.c">
+    <ClCompile Include="C语言系统管理小程序.c">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="实用功能.c">
