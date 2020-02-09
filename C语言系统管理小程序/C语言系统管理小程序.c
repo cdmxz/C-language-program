@@ -241,23 +241,8 @@ void hosts(void)
 
 		if (num == 1)//打开hosts
 		{
-			MessageBox(NULL, TEXT("注意：编辑完hosts文件后请根据本软件的提示：\n“请按任意键继续...”按任意键后再关闭本程序。\n切勿直接关闭本程序，否则会造成hosts文件损坏！"), TEXT("注意："), MB_OK | MB_ICONWARNING);
-			if (rename("C:\\Windows\\System32\\drivers\\etc\\hosts", "C:\\Windows\\System32\\drivers\\etc\\hosts.txt"))//重命名hosts
-			{
-				MessageBox(NULL, TEXT("hosts文件重命名失败！请以管理员权限运行本软件\n或还原默认hosts文件。"), TEXT("Error"), MB_OK | MB_ICONERROR);
-				continue;
-			}
-
-			system("start C:\\Windows\\System32\\drivers\\etc\\hosts.txt");//打开hosts
-			printf("\n\n\t\t");
-			system("pause");
-
-
-			if (rename("C:\\Windows\\System32\\drivers\\etc\\hosts.txt", "C:\\Windows\\System32\\drivers\\etc\\hosts"))
-			{
-				MessageBox(NULL, TEXT("hosts文件重命名失败！\n请手动进入C:\\Windows\\System32\\drivers\\etc\\\n目录下把“hosts.txt”重命名位“hosts”。"), TEXT("Error"), MB_OK | MB_ICONERROR);
-				system("start C:\\Windows\\System32\\drivers\\etc");
-			}
+			MessageBox(NULL, TEXT("注意：编辑完hosts文件后请保存。"), TEXT("注意："), MB_OK | MB_ICONWARNING);
+			system("notepad %windir%\\System32\\drivers\\etc\\hosts");//打开hosts
 		}
 
 		else if (num == 2)//恢复hosts
@@ -270,7 +255,7 @@ void hosts(void)
 
 			if (fputs(host, fpwrite) == EOF)
 			{
-				printf("\n恢复默认hosts失败！请以管理员权限重试！\n\n");
+				printf("\n恢复默认hosts失败！请以管理员权限打开本软件重试！\n\n");
 				fclose(fpwrite);
 				system("pause");
 				exit(EXIT_FAILURE);
@@ -280,7 +265,6 @@ void hosts(void)
 			system("pause");
 		}
 		
-
 		else if (num == 3)
 			break;
 
@@ -311,7 +295,6 @@ int system_config(void)
 		return 1;             
 	}
 
-	
 	//看到这应该明白了吧，所谓的DLL文件只是一个改了名字的加密文件，哈哈。
 	while ((ch = fgetc(fpread)) != EOF)  //从文件中读取内容到ch。EOF是文件结束标志。
 	{
@@ -323,9 +306,7 @@ int system_config(void)
 	fclose(fpwrite);   //关闭文件
 	fclose(fpread);    //关闭文件
 
-	//调用API，设置“获取硬件信息”为隐藏文件 
-	SetFileAttributes("获取硬件信息.bat", FILE_ATTRIBUTE_HIDDEN);
-
+	system("attrib +h +s 获取硬件信息.bat");
 
 	printf("\n\t   温馨提示：请以管理员权限运行本软件，如已使用管理员权限运行请忽略。\n\n\n\n");
 	printf("\n\n\n\n\t\t正在获取电脑配置信息，约30秒-1分钟左右。请耐心等待...\n\n");
@@ -620,4 +601,5 @@ void  delfile(void)
 	remove("系统信息.txt");
 	remove("获取硬件信息.bat");
 	remove("进程信息.txt");
+	remove("使用说明.txt");
 }
