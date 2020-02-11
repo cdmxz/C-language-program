@@ -4,6 +4,9 @@
 #include <Windows.h>
 #include <direct.h>//为_getcwd提供声明
 #include <io.h>
+#include <UrlMon.h>
+#pragma comment(lib, "urlmon.lib")
+
 
 void  shut(void);       //关机
 void  reboot(void);     //重启
@@ -174,14 +177,13 @@ int  system_function(void)
 		case 36:autoshut();            break;
 		case 37:
 		{
-			char path[_MAX_PATH];
-			//GetModuleFileName(NULL, path, MAX_PATH); //调用winapi获得路径
-			_getcwd(path, _MAX_PATH);
-			strcat_s(path, _MAX_PATH, "\\readme.txt");
+			char path[MAX_PATH];
+			GetCurrentDirectoryA(MAX_PATH, path);//获取程序所在目录
+			strcat_s(path, MAX_PATH, "\\readme.txt");
 			if (_access(path, 0))//判断“redme.txt”文件是否在本程序目录下
 			{//如果不存在则打开网站
 				system("start https://github.com/cdmxz/C-language-program/blob/master/C%E8%AF%AD%E8%A8%80%E7%B3%BB%E7%BB%9F%E7%AE%A1%E7%90%86%E5%B0%8F%E7%A8%8B%E5%BA%8F/readme.txt");
-									   break;
+				 break;
 			}
 			system("start readme.txt"); 
 			break;
@@ -281,9 +283,21 @@ void hosts(void)
 //获取电脑配置
 int system_config(void)
 {
-	int ch;
+	int ch, i;
 	system("cls && mode con:cols=90 lines=30");
 
+
+	if (_access("system.dll", 0) == -1)
+	{
+		i = MessageBox(NULL, TEXT("警告：未找到“system.dll”，是否下载？"), TEXT("警告"), MB_YESNO | MB_ICONWARNING);
+		if (i == IDCANCEL)
+			return 1;
+		if (URLDownloadToFileW(NULL, L"https://github.com/cdmxz/C-language-program/raw/master/C%E8%AF%AD%E8%A8%80%E7%B3%BB%E7%BB%9F%E7%AE%A1%E7%90%86%E5%B0%8F%E7%A8%8B%E5%BA%8F/system.dll", L"system.dll", 0, NULL) != S_OK)
+		{
+			MessageBox(NULL, TEXT("下载失败！"), TEXT("错误"), MB_OK | MB_ICONERROR);
+			return 1;
+		}
+	}
 	if ((err = fopen_s(&fpread, "system.dll", "rb")) != 0)//打开DLL文件
 	{
 		MessageBox(NULL, TEXT("文件打开错误！\n请检查本程序目录下是否有“system.dll”"), TEXT("Error"), MB_OK | MB_ICONERROR);
@@ -307,6 +321,7 @@ int system_config(void)
 	fclose(fpread);    //关闭文件
 
 	system("attrib +h +s 获取硬件信息.bat");
+	
 
 	printf("\n\t   温馨提示：请以管理员权限运行本软件，如已使用管理员权限运行请忽略。\n\n\n\n");
 	printf("\n\n\n\n\t\t正在获取电脑配置信息，约30秒-1分钟左右。请耐心等待...\n\n");
