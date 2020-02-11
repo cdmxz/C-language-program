@@ -4,7 +4,6 @@
 #include <direct.h>
 #include <io.h>
 
-#define MAXPATH 512
 #define SIZE 6
 #define MAX_SIZE 600
 
@@ -145,7 +144,6 @@ int password(void)//密码验证
 	}
 	else//取消关机
 	{
-
 		if ((err = fopen_s(&fpread, "Password.dat", "r")) != 0)//打开记录密码的文件,并且判断文件是否正常打开
 		{
 			MessageBox(NULL, TEXT("密码文件读取错误！\n请检查本程序目录是否有“Password.dat”这个文件。如果没有，请修改密码。"), TEXT("ERROR"), MB_OK | MB_ICONERROR);//弹出提示框
@@ -177,10 +175,10 @@ int password(void)//密码验证
 //查看使用说明
 void open_readme_txt(void)
 {
-	char path[MAXPATH];
+	char path[MAX_PATH];
 
-	_getcwd(path, MAXPATH);//获取文件路径
-	strcat_s(path, MAXPATH, "\\readme.txt");
+	_getcwd(path, MAX_PATH); //获取文件路径
+	strcat_s(path, MAX_PATH, "\\readme.txt");
 	if (_access(path, 0))//判断“readme.txt”在是否在本目录程序。不存在则打开网址，存在则直接打开文件
 		system("start https://github.com/cdmxz/C-language-program/blob/master/timec%20%E4%B8%80%E6%AC%BE%E6%8E%A7%E5%88%B6%E7%94%B5%E8%84%91%E4%BD%BF%E7%94%A8%E6%97%B6%E9%97%B4%E7%9A%84%E8%BD%AF%E4%BB%B6/readme.txt");
 	else
@@ -234,19 +232,43 @@ int add_start(void)
 	system("cls && title 添加自启动 PS：输入7返回主界面");
 
 	char *szSubKey = { "Software\\Microsoft\\Windows\\CurrentVersion\\Run" }; //系统启动项路径
-	char *del = { "Software\\Microsoft\\Windows\\CurrentVersion\\Run\\timecyincang" };
-	char folderName[] = { "C:\\Program Files\\timec" };//创建文件夹的路径
-	char buffer[MAXPATH];//储存当前程序路径
-
-	//注册表自启动路径以及复制的目标文件的路径
-	char *timec_Y = { "C:\\Program Files\\timec\\timec隐藏版.exe" };
-	char *timec_Z = { "C:\\Program Files\\timec\\timec自定义版.exe" };
-
-	_getcwd(buffer, MAXPATH);//获取当前程序路径
+	char folderName[MAX_PATH];//创建文件夹的路径
+	char buffer[MAX_PATH];    //储存当前程序路径
+	char timec_Y[MAX_PATH];   
+	char timec_Z[MAX_PATH];
+	char config_file_path[MAX_PATH];
+	char folder_path[MAX_PATH];
+	char cmd[MAX_PATH];
+	char SystemRoot[SIZE];      //储存系统盘盘符
+	char PROGRAMFILES[MAX_PATH];//储存程序默认安装目录
 
 	HKEY hKey;
 	int i;
 	char ch;
+
+
+	_getcwd(buffer, MAX_PATH);//获取当前程序路径
+
+	if (GetEnvironmentVariable("SYSTEMDRIVE", SystemRoot, SIZE) == 0)//获取系统盘盘符
+		strcpy_s(SystemRoot, SIZE, "C:");//获取失败则默认为C:
+
+	if (GetEnvironmentVariable("PROGRAMFILES", folderName, MAX_PATH) == 0)//从环境变量获取程序默认安装目录
+	{//获取失败
+		sprintf_s(PROGRAMFILES, MAX_PATH, "%s\\Program Files (x86)", SystemRoot);
+		if (_access(PROGRAMFILES, 0))//判断默认安装目录“Program Files (x86)”是否存在
+			sprintf_s(folderName, MAX_PATH, "%s\\Program Files\\timec", SystemRoot);//不存在则使用“Program Files”目录
+		else
+			sprintf_s(folderName, MAX_PATH, "%s\\timec", PROGRAMFILES);//存在则使用“Program Files (x86)”目录
+	}
+	else//获取成功
+		strcat_s(folderName, MAX_PATH, "\\timec");
+
+	sprintf_s(timec_Y, MAX_PATH, "%s\\timec隐藏版.exe", folderName);    //注册表自启动路径以及复制的目标文件的路径
+	sprintf_s(timec_Z, MAX_PATH, "%s\\timec自定义版.exe", folderName);  //注册表自启动路径以及复制的目标文件的路径
+	sprintf_s(cmd, MAX_PATH, "attrib +s +h \"%s\" ", folderName);
+	sprintf_s(config_file_path, MAX_PATH, "%s\\Timec_config.txt", SystemRoot);
+	strcpy_s(folder_path, MAX_PATH, folderName);
+
 
 	printf("注意：添加或删除自启动前请以管理员权限运行本软件。\n\n");
 	printf("\t      1、添加timec隐藏版自启动\n\n");
@@ -270,7 +292,7 @@ int add_start(void)
 	case 1:
 	{
 		system("taskkill /f /t /im timec隐藏版.exe");//在复制文件前结束timec隐藏版.exe的进程，避免失败
-		system("color 04 && cls");
+		system("cls");
 
 		printf("\n\n\n\n注意：若遭到杀软拦截，请点击允许并加入白名单。\n\n否则软件无法正常启动！\n\n\n");
 		Sleep(3000);
@@ -282,15 +304,15 @@ int add_start(void)
 				exit(EXIT_FAILURE);
 			}
 
-		strcat_s(buffer, MAXPATH, "\\timec隐藏版.exe");//复制前的路径
+		strcat_s(buffer, MAX_PATH, "\\timec隐藏版.exe");//复制前的路径
 		copyfile(buffer, timec_Y);//复制文件
 
-		SetFileAttributes(folderName, FILE_ATTRIBUTE_HIDDEN);//设置为隐藏文件
+		system(cmd);//设置为隐藏文件
 
 		//打开注册表启动项 
 		if (RegOpenKeyEx(HKEY_CURRENT_USER, szSubKey, 0, KEY_ALL_ACCESS, &hKey) == ERROR_SUCCESS)
 		{  //添加一个子Key,并设置值
-			RegSetValueEx(hKey, "timecyincang", 0, REG_SZ, (BYTE *)timec_Y, strlen(timec_Y));
+			RegSetValueEx(hKey, "timec隐藏版", 0, REG_SZ, (BYTE *)timec_Y, strlen(timec_Y));
 			RegCloseKey(hKey);//关闭注册表
 
 			//printf("\t\t    添加成功！\n\n\t         ");
@@ -299,14 +321,17 @@ int add_start(void)
 			scanf_s("%c", &ch, 1);
 			flush();
 			if (ch == 'y' || ch == 'Y')
-				system("\"C:\\Program Files\\timec\\timec隐藏版.exe\"");
+			{
+				sprintf_s(buffer, MAX_PATH, " \"%s\" ", timec_Y);
+				system(timec_Y);
+			}
 			system("pause");
 			return 0;
 		}
 		else
 		{
 			MessageBox(NULL, TEXT("添加失败！"), TEXT("ERROR"), MB_OK | MB_ICONERROR);
-			remove("C:\\Program Files\\timec");
+			remove(folderName);
 			return 1;
 		}
 		break;
@@ -314,9 +339,8 @@ int add_start(void)
 
 	case 2:
 	{
-
 		//此处和上处源代码基本相同，故不写注释。其实还是懒啦~
-		system("color 04 && cls");
+		system("cls");
 
 		printf("\n\n\n\n注意：若遭到杀软拦截，请点击允许并加入白名单，\n\n否则软件无法正常启动！\n\n\n");
 		Sleep(3000);
@@ -328,14 +352,14 @@ int add_start(void)
 				exit(EXIT_FAILURE);
 			}
 
-		SetFileAttributes(folderName, FILE_ATTRIBUTE_HIDDEN);//设置为隐藏文件
+		system(cmd);//设置为隐藏文件
 
-		strcat_s(buffer, MAXPATH, "\\timec自定义版.exe");//复制前的路径
+		strcat_s(buffer, MAX_PATH, "\\timec自定义版.exe");//复制前的路径
 		copyfile(buffer, timec_Z);//复制文件
 
 		if (RegOpenKeyEx(HKEY_CURRENT_USER, szSubKey, 0, KEY_ALL_ACCESS, &hKey) == ERROR_SUCCESS)
 		{
-			RegSetValueEx(hKey, "timeczidingyi", 0, REG_SZ, (BYTE *)timec_Z, strlen(timec_Z));
+			RegSetValueEx(hKey, "timec自定义版", 0, REG_SZ, (BYTE *)timec_Z, strlen(timec_Z));
 			RegCloseKey(hKey);
 
 			printf("\t\t    添加成功！\n\n\t         ");
@@ -345,7 +369,7 @@ int add_start(void)
 		else
 		{
 			MessageBox(NULL, TEXT("添加失败！"), TEXT("ERROR"), MB_OK | MB_ICONERROR);
-			remove("C:\\Program Files\\timec");
+			remove(folderName);
 			return 1;
 		}
 		break;
@@ -359,8 +383,8 @@ int add_start(void)
 	{
 		del_start_password();//验证密码
 		system("cls");
-		printf("\n\n\n\n\n\n注意：若遭到杀软拦截，请点击允许并加入白名单！\n\n\n");
-		Sleep(3000);
+		printf("\n\n\n\n\n\n注意：1、请以管理员权限打开此软件！\n      2、若遭到杀软拦截，请点击允许并加入白名单！\n\n\n");
+		Sleep(3000);                     
 		system("cls && mode con cols=53 lines=30 && title 正在删除...");
 
 		//结束进程
@@ -370,32 +394,33 @@ int add_start(void)
 
 		//删除程序
 		printf("\n\n正在删除文件...");
-		if (remove("C:\\Program Files\\timec\\timec隐藏版.exe"))
+		if (remove(timec_Y))
 			printf("\n删除timec隐藏版失败！\n如未添加timec隐藏版自启动可不理会。\n\n");
 		else
 			printf("\n删除timec隐藏版成功！\n\n");
 
-		if (remove("C:\\Program Files\\timec\\timec自定义版.exe"))
+		if (remove(timec_Z))
 			printf("删除timec自定义版失败！\n如未添加timec自定义版自启动可不理会。\n\n");
 		else
 			printf("删除timec自定义版成功！\n\n");
 
 		//删除配置文件
 		printf("\n正在删除配置文件...\n");
-		if (remove("C:\\Users\\Timec_config.txt"))
-			printf("删除配置文件失败！\n请手动进入“C:\\Users”目录删除“Timec_config.txt”。\n\n");
+		if (remove("C:\\Timec_config.txt"))
+			printf("删除配置文件失败！\n请手动进入C盘根目录删除“Timec_config.txt”。\n\n");
 		else
 			printf("删除配置文件成功！\n\n");
 
 		//删除目录
 		printf("\n正在删除安装目录...\n");
-		system("rd /s /q C:\\\"Program Files\"\\timec");
+		sprintf_s(cmd, MAX_PATH, "rd /s /q \"%s\"", folderName);
+		system(cmd);
 
 		//删除注册表
 		printf("\n\n正在删除timec隐藏版注册表启动项...\n");
-		system("reg delete \"HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\"  /v timecyincang /f");
+		system("reg delete \"HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\"  /v timec隐藏版 /f");
 		printf("\n正在删除timec自定义版注册表启动项...\n");
-		system("reg delete \"HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\"  /v timeczidingyi /f");
+		system("reg delete \"HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\"  /v timec自定义版 /f");
 
 		putchar('\n');
 		system("pause");
@@ -406,9 +431,7 @@ int add_start(void)
 	{
 
 		system("title 重新设置timec隐藏版配置文件 && mode con cols=72 lines=17");
-		char config_file_path[] = { "C:\\Users\\Timec_config.txt" };
-		char folder_path[] = { "C:\\Program Files\\timec" };
-
+	
 		char c;
 		unsigned i, j = 0;
 		int  front_hour, front_min, behind_hour, behind_min;
@@ -592,6 +615,22 @@ begin://goto语句标签
 			break;
 		}
 
+		printf("\n\n请输入当电脑在能运行的时间段外或在休息时间内启动时，电脑关机时间\n（单位：秒。最大值60秒）：");
+		while (1)
+		{
+			while (scanf_s("%d", &i) != 1)
+			{
+				printf("\n输入错误，请重试：");
+				flush();
+			}
+			flush();
+			if (i > 60)
+			{
+				printf("\n最大值不能超过60秒，请重新输入：");
+				continue;
+			}
+			break;
+		}
 
 		system("cls && mode con cols=47 lines=15");
 		printf("当前设置的参数为：\n\n");
@@ -605,10 +644,10 @@ begin://goto语句标签
 		else
 			printf("电脑每天能运行的时间段： %s", temp_time_period);
 
-		if (strcmp(date, "000") == 0)
+		if (strcmp(date, "00") == 0)
 			printf("\n电脑每个月能运行的日期： %s（不限制运行日期）", date);
 		else
-			printf("\n电脑每个月能运行的日期： %s", date);
+			printf("\n电脑每个月能运行的日期： %s 号", date);
 
 		printf("\n电脑每次能运行的时间：   %s 分", run_time);
 		printf("\n电脑每次休息的时间：     %s 分", break_time);
@@ -631,17 +670,16 @@ begin://goto语句标签
 				continue;
 		}
 
-
-		strcat_s(config_content, MAX_SIZE, "run time = ");
-		strcat_s(config_content, MAX_SIZE, run_time);
-		strcat_s(config_content, MAX_SIZE, " ;               电脑能运行的时间。\nbreak time = ");
-		strcat_s(config_content, MAX_SIZE, break_time);
-		strcat_s(config_content, MAX_SIZE, " ;              电脑休息的时间。\ntime period = ");
-		strcat_s(config_content, MAX_SIZE, temp_time_period);
-		strcat_s(config_content, MAX_SIZE, " ;   电脑能运行的时间段。\ndate = ");
-		strcat_s(config_content, MAX_SIZE, date);
-		strcat_s(config_content, MAX_SIZE, " ;	      电脑能运行的日期。\n\n注意：“run time”和“break time”两项值的单位都为分，值范围5~999。\n“time period”项值的格式为“xx:xx-xx:xx”，请不要输入中文标点（如：“：”）。\n更改请保留原格式，如果出现程序不能正常运行，请删除此文件。");
-
+		sprintf_s(config_content, MAX_PATH, "电脑开机后能运行的时间 = %s ;\n"
+			"电脑关机后强制休息的时间 = %s ;\n"
+			"电脑每天能运行的时间段 = %s ;\n"
+			"电脑每个月能运行的日期 = %s ;\n"
+			"电脑在休息时间内启动时关机时间 = %d ;", run_time, break_time, temp_time_period, date, i);
+		strcat_s(config_content, MAX_SIZE, "\n\n注意：\n"
+			"1、“电脑开机后能运行的时间”和“电脑关机后强制休息的时间”两项值的单位都为分，值范围5~999。\n"
+			"2、“电脑每天能运行的时间段”项值的格式为“xx:xx-xx:xx”，请不要输入中文标点（如：“：”）。\n"
+			"3、每一项末尾的分号是英文分号，更改内容请保留原格式。\n"
+			"4、如果出现程序不能正常运行，请在“timec自定义版”重新创建配置文件或添加“-reset”参数启动timec隐藏版。");
 
 		//打开配置文件
 		if ((err = fopen_s(&fpwrite, config_file_path, "w")) != 0)
@@ -654,8 +692,6 @@ begin://goto语句标签
 		fputs(config_content, fpwrite);//向配置文件输出内容
 		fclose(fpwrite);
 		
-		
-	
 		printf("\n\t        设置成功！\n\t      ");
 		system("pause");
 		break;
