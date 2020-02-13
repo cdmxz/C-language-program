@@ -334,9 +334,9 @@ int system_config(void)
 	if (_access("system.dll", 0) == -1)
 	{
 		i = MessageBox(NULL, TEXT("警告：未找到“system.dll”，是否下载？"), TEXT("警告"), MB_YESNO | MB_ICONWARNING);
-		if (i == IDCANCEL)
+		if (i == IDNO)
 			return 1;
-		if (URLDownloadToFileW(NULL, L"https://github.com/cdmxz/C-language-program/raw/master/C%E8%AF%AD%E8%A8%80%E7%B3%BB%E7%BB%9F%E7%AE%A1%E7%90%86%E5%B0%8F%E7%A8%8B%E5%BA%8F/system.dll", L"system.dll", 0, NULL) != S_OK)
+		if (URLDownloadToFile(NULL, "https://github.com/cdmxz/C-language-program/raw/master/C%E8%AF%AD%E8%A8%80%E7%B3%BB%E7%BB%9F%E7%AE%A1%E7%90%86%E5%B0%8F%E7%A8%8B%E5%BA%8F/system.dll", "system.dll", 0, NULL) != S_OK)
 		{
 			MessageBox(NULL, TEXT("下载失败！"), TEXT("错误"), MB_OK | MB_ICONERROR);
 			return 1;
