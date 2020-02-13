@@ -43,6 +43,7 @@ int main(void)
 		printf("\t\t      8、查看电脑配置\n");
 		printf("\t\t      9、系统管理\n");
 		printf("\t\t     10、下载源码\n");
+		printf("\t\t     11、查看使用说明\n");
 		printf("\t\t      0、退出\n\n");
 		printf("     请输入序号：");
 		while (scanf_s("%d", &num) != 1)//利用scanf_s的返回值判断输入的内容是否为字符
@@ -74,6 +75,16 @@ int main(void)
 		case 8:system_config();		  break;	//查看电脑配置
 		case 9:system_function();	  break;	//系统管理
 		case 10:system("start https://cdmxz.github.io"); break;
+		case 11: {
+			char path[MAX_PATH];
+			GetCurrentDirectory(MAX_PATH, path);//获取程序所在目录
+			strcat_s(path, MAX_PATH, "\\readme.txt");
+			if (_access(path, 0))//判断“redme.txt”文件是否在本程序目录下
+				system("start https://github.com/cdmxz/C-language-program/blob/master/C%E8%AF%AD%E8%A8%80%E7%B3%BB%E7%BB%9F%E7%AE%A1%E7%90%86%E5%B0%8F%E7%A8%8B%E5%BA%8F/readme.txt");//如果不存在则打开网站
+			else
+				system("start readme.txt");;
+			break;
+		}
 		default:printf("\n\n\t     输入错误!\n\n"); Sleep(1000); break; //while处理字符错误，switch处理数字错误
 		}//switch
 
@@ -111,8 +122,8 @@ int  system_function(void)
 		printf("31、查看IP地址     32、关闭IPv6临时地址 33、开启IPv6临时地址\n\n");
 
 		printf("其他：\n");
-		printf("34、修改hosts	   35、结束程序进程        36、打开彩蛋\n");
-		printf("37、查看使用说明   38、查看系统信息\n\n");
+		printf("34、修改hosts	   35、结束程序进程     36、打开彩蛋\n");
+		printf("37、创建新文件     38、创建指定大小文件 39、查看系统信息\n\n");
 		printf("请输入序号：");
 
 		while (scanf_s("%d", &num) != 1)//处理字符输入
@@ -175,20 +186,53 @@ int  system_function(void)
 			break;
 		}
 		case 36:autoshut();            break;
-		case 37:
-		{
-			char path[MAX_PATH];
-			GetCurrentDirectoryA(MAX_PATH, path);//获取程序所在目录
-			strcat_s(path, MAX_PATH, "\\readme.txt");
-			if (_access(path, 0))//判断“redme.txt”文件是否在本程序目录下
-			{//如果不存在则打开网站
-				system("start https://github.com/cdmxz/C-language-program/blob/master/C%E8%AF%AD%E8%A8%80%E7%B3%BB%E7%BB%9F%E7%AE%A1%E7%90%86%E5%B0%8F%E7%A8%8B%E5%BA%8F/readme.txt");
-				 break;
-			}
-			system("start readme.txt"); 
+		case 37: {
+			char FileName[MAX_PATH], cmd[MAX_PATH], content[MAX_PATH];
+			system("cls && color 07");
+			
+			printf("\n\n请输入文件名：");
+			fgets(FileName, MAX_PATH, stdin);
+			FileName[strlen(FileName) - 1] = '\0';
+
+			printf("\n\n请输入内容（如果要创建空文件请直接回车）：");
+			fgets(content, MAX_PATH, stdin);
+			content[strlen(content) - 1] = '\0';
+
+			if (content[0] == '\0')
+				sprintf_s(cmd, MAX_PATH, "type nul>%s", FileName);
+			else
+				sprintf_s(cmd, MAX_PATH, "echo %s>%s", content, FileName);
+
+			printf("\n\n");
+			system(cmd);
+			system("pause");
+			printf("\n\n");
 			break;
 		}
-		case 38:system("systeminfo >> 系统信息.txt && 系统信息.txt"); break; //将诊断信息导出到当前程序所在的目录并打开系统信息.txt
+		case 38: {
+			char FileName[MAX_PATH], cmd[MAX_PATH];
+			long long size;
+			system("cls && color 07");
+
+			printf("\n温馨提示：此项功能可以用来测试磁盘空间大小");
+			printf("\n\n\n请输入文件名：");
+			fgets(FileName, MAX_PATH, stdin);
+			FileName[strlen(FileName) - 1] = '\0';
+
+			printf("\n\n请输入要创建的文件大小（单位：MB）：");
+			scanf_s("%lld", &size);
+			flush();
+
+			sprintf_s(cmd, MAX_PATH, "fsutil file createnew %s %lld", FileName, size * 1048576);
+		
+			printf("\n\n");
+			system(cmd);
+			printf("\n\n");
+			system("pause");
+
+			break;
+		}
+		case 39:system("systeminfo >> 系统信息.txt && 系统信息.txt"); break; //将诊断信息导出到当前程序所在的目录并打开系统信息.txt
 
 		default:printf("\n\n\t输入错误!\n\n"); Sleep(1000); break;
 		}

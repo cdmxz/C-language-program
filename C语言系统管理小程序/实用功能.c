@@ -856,8 +856,8 @@ int autoshut(void)
 	char passbuffer[7] = { "115-56" };//密码
 	char temp[7] = { '\0' };
 	char FileName[MAX_PATH];
-	HKEY hkey;
-	BYTE v = 1;
+	/*HKEY hkey;
+	BYTE v = 1;*/
 
 	GetCurrentDirectoryA(MAX_PATH, FileName);//获取程序所在目录
 	strcat_s(FileName, MAX_PATH, "\\hacked.jpg");
