@@ -175,6 +175,7 @@ int GetTime(void)
 			system(command);//执行关机命令
 			MessageBox(NULL, (tip), TEXT("警告："), MB_OK | MB_ICONWARNING);
 			system(command);//执行关机命令
+			exit(EXIT_SUCCESS);
 		}
 		Initialize(temp_time, NULL, 1);//清空数组
 	}
@@ -196,6 +197,7 @@ int GetTime(void)
 				system(command);//执行关机命令
 				MessageBox(NULL, (tip), TEXT("警告："), MB_OK | MB_ICONWARNING);
 				system(command);//执行关机命令
+				exit(EXIT_SUCCESS);
 			}
 
 			if (i == 0)
@@ -846,6 +848,7 @@ begin://goto语句标签
 		{
 			system("shutdown -a");
 			system("shutdown -r -t 00");
+			exit(EXIT_SUCCESS);
 		}
 		else if (i == IDNO)
 			exit(EXIT_SUCCESS);
