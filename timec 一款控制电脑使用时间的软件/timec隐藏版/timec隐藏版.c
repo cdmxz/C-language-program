@@ -191,7 +191,8 @@ int GetTime(void)
 			Initialize(temp_time, NULL, 1);
 			if (i == 100)
 			{
-				sprintf_s(command, 100, "shutdown -a && shutdown -f -s -t %d", sec);
+				system("shutdown -a");
+				sprintf_s(command, 100, "shutdown -f -s -t %d", sec);
 				system(command);//执行关机命令
 				MessageBox(NULL, (tip), TEXT("警告："), MB_OK | MB_ICONWARNING);
 				system(command);//执行关机命令
@@ -281,14 +282,16 @@ int GetTime(void)
 
 
 		//如果当前时间与关机时间相差小于5分钟就算出当前时间距离下次关机时间还有多少分
-		sprintf_s(command, 100, "shutdown -a && shutdown -f -s -t %lld", (ShutDownTime - current_time));//把时间差写到数组
+		system("shutdown -a");
+		sprintf_s(command, 100, "shutdown -f -s -t %lld", (ShutDownTime - current_time));//把时间差写到数组
 		system(command);                         //执行关机命令
 		Shutdown_Tip((long)(ShutDownTime - current_time));
 	}
 	else if (strcmp(last_time, time_now) > 0)    //否则判断当前时间是否小于电脑能启动的时间
 	{
 		//如果当前时间小于电脑能启动的时间就执行关机命令并且输出关机提示
-		sprintf_s(command, 100, "shutdown -a && shutdown -f -s -t %d", sec);
+		system("shutdown -a");
+		sprintf_s(command, 100, "shutdown -f -s -t %d", sec);
 		system(command);//执行关机命令
 		MessageBox(NULL, (tip), TEXT("警告！"), MB_OK | MB_ICONWARNING);//弹出关机提示
 		system(command);//执行关机命令
@@ -409,7 +412,8 @@ void ShutDown(void)
 	Read_File(&run_time, NULL, NULL, NULL, 1);
 	run_time *= 60;//把分转换为秒
 
-	sprintf_s(command, 40, "shutdown -a && shutdown -f -s -t %d", run_time);
+	system("shutdown -a");
+	sprintf_s(command, 40, "shutdown -f -s -t %d", run_time);
 	system(command);
 	Shutdown_Tip(run_time);
 }
@@ -839,7 +843,10 @@ begin://goto语句标签
 
 		i = MessageBox(NULL, TEXT("设置成功！重启后生效，是否现在重启？\n注意：1、如需取消自启动，请在timec自定义版删除。\n            2、重启前请保存好数据资料！"), TEXT("设置成功！"), MB_YESNO | MB_ICONQUESTION);
 		if (i == IDYES)
+		{
+			system("shutdown -a");
 			system("shutdown -r -t 00");
+		}
 		else if (i == IDNO)
 			exit(EXIT_SUCCESS);
 	}
@@ -866,7 +873,8 @@ void Shutdown_Tip(const long sec)
 
 	second *= 1000;
 	Sleep(second);
-	system("shutdown -a && shutdown -f -s -t 180");
+	system("shutdown -a");
+	system("shutdown -f -s -t 180");
 	MessageBox(NULL, TEXT("还有3分钟就要关机了，请做好准备！"), TEXT("警告"), MB_OK | MB_ICONWARNING);
 	exit(EXIT_SUCCESS);
 }
