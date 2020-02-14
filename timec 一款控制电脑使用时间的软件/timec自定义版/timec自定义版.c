@@ -39,7 +39,6 @@ int main(void)
 		printf("\t\t 8、查看使用说明 \n");
 		printf("\t\t 9、添加自启动\n");
 		printf("\t\t 10、退出程序\n\n");
-		//printf("温馨提示：输入序号后请按回车。\n");
 		printf("\n\t请输入序号：");
 
 		while (scanf_s("%d", &time) != 1)//处理字符输入
