@@ -10,7 +10,7 @@
 #define PAI 3.14
 
 void Encrypt_or_decrypt(void);    //加密或解密
-void thread_enc_dec_file(void* p);//多线程加密或解密文件内容
+void enc_dec_file(char* source, char* dest);//加密或解密文件内容
 int warning(void);                //当路径中有相同文件是提示是否覆盖
 
 						  //计算器
@@ -25,7 +25,7 @@ void circular(void); //圆柱体计算
 void cube(void);     //正方体计算
 void cuboid(void);   //长方体计算
 
- 
+
 //加入自启动
 int addstart(void);
 //删除自启动
@@ -34,7 +34,7 @@ int delstart(void);
 void fgets_n(char* n);
 
 
-int Return, num, ch;//定义全局变量
+int  num, ch;//定义全局变量
 unsigned  i;
 char filename[MAX_PATH] = { 0 };   //储存待加密或待解密文件名称
 char temp_filename[MAX_PATH];      //储存加密后或解密后文件名称
@@ -74,7 +74,7 @@ void function(void)
 		else if (num == 3)
 			addstart();
 
-		else if(num==4)
+		else if (num == 4)
 			delstart();
 
 		else if (num == 5)
@@ -146,18 +146,12 @@ void Encrypt_or_decrypt(void)
 			if (warning() == 110)//判断文件是否存在
 				continue;
 
-			_beginthread(thread_enc_dec_file, 0, NULL);
-		
+			printf("\n正在加密：%s请稍等...", filename);//输出文件名
 
-			if (Return == 1)
-			{
-				system("cls");
-				system("pause");
-				continue;
-			}
+			enc_dec_file(filename, temp_filename);
 
 			system("cls");
-			printf("\n\n\n正在加密：%s，请在5秒后关闭此程序。\n\n\t\t    ", filename);//输出文件名
+			printf("\n\n\n加密：%s成功！\n\n\t\t    ", filename);//输出文件名
 			system("pause");
 			continue;
 		}
@@ -195,17 +189,13 @@ void Encrypt_or_decrypt(void)
 
 			if (warning() == 110)//判断文件是否存在
 				continue;
-			_beginthread(thread_enc_dec_file, 0, NULL);//多线程
-			
-			if (Return == 1)
-			{
-				system("cls");
-				system("pause");
-				continue;
-			}
+
+			printf("\n正在解密：%s，请稍等...", filename);//输出文件名
+
+			enc_dec_file(filename, temp_filename);
 
 			system("cls");
-			printf("\n\n\n正在解密：%s，请在5秒后关闭此程序。\n\n\t\t    ", filename);//输出文件名
+			printf("\n\n\n解密：%s成功！\n\n\t\t    ", filename);//输出文件名
 			system("pause");
 			continue;
 		}
@@ -302,30 +292,89 @@ void Encrypt_or_decrypt(void)
 }
 
 
-//多线程加密或解密文件内容
-void thread_enc_dec_file(void* p)
+//加密或解密文件内容
+void enc_dec_file(char* source, char* dest)
 {
-	if ((err = fopen_s(&fpread, filename, "rb")) != 0)//以读的方式打开文件
+	FILE* fpRead, * fpWrite;
+	size_t len;
+	long long currentMemory, fileSize;//获取当前可用物理内存大小
+	int i = 2;
+	MEMORYSTATUSEX memoryStatus;
+	memoryStatus.dwLength = sizeof(memoryStatus);
+
+
+	if (!GlobalMemoryStatusEx(&memoryStatus))//获取当前可用的物理内存
 	{
-		perror("\n错误（看不懂请使用翻译软件翻译）");
-		Return = 1;//返回值
-		_endthread();//终止多线程
+		i = MessageBox(NULL, TEXT("获取当前可用内存失败，是否继续复制（可能导致电脑死机、蓝屏）？"), TEXT("错误"), MB_YESNO | MB_ICONERROR);
+		if (i == IDNO)
+			exit(EXIT_FAILURE);
+	}
+	if (i == IDYES)
+		currentMemory = 10485760;//10MB
+	else
+		currentMemory = memoryStatus.ullAvailPhys;
+
+
+	if (fopen_s(&fpRead, source, "rb") != 0)
+	{
+		MessageBox(NULL, TEXT("打开源文件错误！"), TEXT("错误"), MB_OK | MB_ICONERROR);
+		exit(EXIT_FAILURE);
 	}
 
-	if ((err = fopen_s(&fpwrite, temp_filename, "wb")) != 0)//以写的方式打开文件
+
+	fseek(fpRead, 0, SEEK_END);//文件指针置于文件末尾
+	fileSize = _ftelli64(fpRead);//获取文件大小
+	rewind(fpRead);//文件指针置于文件开头
+
+
+	if (fopen_s(&fpWrite, dest, "wb") != 0)
 	{
-		perror("\n错误（看不懂请使用翻译软件翻译）");
-		Return = 1;//返回值
-		_endthread();//终止多线程
+		MessageBox(NULL, TEXT("打开目标文件错误！"), TEXT("错误"), MB_OK | MB_ICONERROR);
+		exit(EXIT_FAILURE);
 	}
 
-	while ((ch = fgetc(fpread)) != EOF)
-		fputc(~ch, fpwrite);
-	
-	fclose(fpread);
-	fclose(fpwrite);
 
-	_endthread();//终止多线程
+	for (; i <= 100; i++)
+	{
+		if (currentMemory == 10485760)
+			break;
+
+		//将当前文件大小除以 i，并判断是否大于当前可用内存，加500MB（524288000 byte）是为了给系统留500MB内存空间	
+		if ((fileSize / i + 524288000) <= currentMemory && fileSize < 4294967295 && fileSize <= 1073741824)//fileSize <= 4294967295 是为了确保因类型不同造成错误。fileSize是long long类型，calloc和fread需要size_t(unsigned int)型数据，4294967295是unsigned int表示的最大范围		
+			break;
+
+		if (i == 100)
+		{
+			MessageBox(NULL, TEXT("内存空间不足，请关闭一些应用程序重试！"), TEXT("错误"), MB_OK | MB_ICONERROR);
+			exit(EXIT_FAILURE);
+		}
+		fileSize /= i;//求出复制文件时malloc分配的内存空间大小
+	}
+
+
+	char* buffer = (char*)calloc((size_t)(fileSize + 1), sizeof(char));
+	if (buffer == NULL)//如果空间不足
+	{
+		MessageBox(NULL, TEXT("内存空间不足，请关闭一些应用程序重试！"), TEXT("错误"), MB_OK | MB_ICONERROR);
+		exit(EXIT_FAILURE);
+	}
+
+	while ((len = fread(buffer, sizeof(char), (size_t)fileSize, fpRead)) > 0)//复制文件
+	{
+		for (i = 0; i <= fileSize; i++)
+			buffer[i] = ~buffer[i];//对读取到内存的内容进行加密或解密
+
+		if (fwrite(buffer, sizeof(char), len, fpWrite) < len)
+		{
+			MessageBox(NULL, TEXT("目标磁盘空间不足，请释放空间后重试！"), TEXT("错误"), MB_OK | MB_ICONERROR);
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	fclose(fpRead);
+	fclose(fpWrite);
+	free(buffer);
+	buffer = NULL;
 }
 
 
@@ -383,7 +432,7 @@ int cal(void)
 			printf("\n输入错误！请重新输入：");
 		}
 		rewind(stdin);
-		
+
 
 		switch (num)
 		{
@@ -399,7 +448,7 @@ int cal(void)
 		case 9:cuboid();    break;   //长方体、形计算
 		default:printf("\n\t输入错误！"); Sleep(1000); break;
 		}
-	
+
 	}
 	return 0;
 }
@@ -524,7 +573,7 @@ void bin(void)
 		while ((bin = getchar()) != '\n')
 			dec = dec * 2 + (bin - '0');
 		printf("\n\n转换为十进制的值是：%lld\n\n", dec); //输出
-		
+
 		i++;
 
 		if (i == 3)
@@ -608,7 +657,7 @@ void ascii(void)
 //字符转ascii码
 void character(void)
 {
-	 i = 0;
+	i = 0;
 
 	while (1)
 	{
@@ -673,13 +722,13 @@ void circular(void)
 		}
 		rewind(stdin);
 
-		printf("\n圆的面积为：%.3lf 平方厘米\n", PAI*r*r);
-		printf("圆的周长为：%.3lf 厘米\n\n", 2 * PAI*r);
-		printf("圆柱体的底面积为：  %.3lf 平方厘米\n", PAI*r*r);
-		printf("圆柱体的底面周长为：%.3lf 厘米\n", 2 * PAI*r);
-		printf("圆柱体的体积为：    %.3lf 立方厘米\n", PAI*r*r*h);
-		printf("圆柱体的侧面积为：  %.3lf 平方厘米\n", 2 * PAI*r*h);
-		printf("圆柱体的表面积为：  %.3lf 平方厘米\n\n", 2 * PAI*r*r + 2 * PAI*r*h);
+		printf("\n圆的面积为：%.3lf 平方厘米\n", PAI * r * r);
+		printf("圆的周长为：%.3lf 厘米\n\n", 2 * PAI * r);
+		printf("圆柱体的底面积为：  %.3lf 平方厘米\n", PAI * r * r);
+		printf("圆柱体的底面周长为：%.3lf 厘米\n", 2 * PAI * r);
+		printf("圆柱体的体积为：    %.3lf 立方厘米\n", PAI * r * r * h);
+		printf("圆柱体的侧面积为：  %.3lf 平方厘米\n", 2 * PAI * r * h);
+		printf("圆柱体的表面积为：  %.3lf 平方厘米\n\n", 2 * PAI * r * r + 2 * PAI * r * h);
 		system("pause");
 	}
 
@@ -752,10 +801,10 @@ void cuboid(void)
 		}
 		rewind(stdin);
 
-		printf("\n\n长方形的面积是：%.3lf 平方厘米\n", l*w);
-		printf("长方形的周长是：%.3lf 厘米\n\n", (l*w + l * w) * 2);
-		printf("长方体的体积是：  %.3lf 立方厘米\n", h*l*w);
-		printf("长方体的表面积是：%.3lf 平方厘米\n\n", (l*w + l * h + w * h) * 2);
+		printf("\n\n长方形的面积是：%.3lf 平方厘米\n", l * w);
+		printf("长方形的周长是：%.3lf 厘米\n\n", (l * w + l * w) * 2);
+		printf("长方体的体积是：  %.3lf 立方厘米\n", h * l * w);
+		printf("长方体的表面积是：%.3lf 平方厘米\n\n", (l * w + l * h + w * h) * 2);
 		system("pause");
 	}
 }
@@ -766,7 +815,7 @@ int addstart(void)
 	system("title 添加软件自启动 && cls");
 
 	HKEY hKey;
-	char *regPath = { "Software\\Microsoft\\Windows\\CurrentVersion\\Run" }; //注册表启动项路径
+	char* regPath = { "Software\\Microsoft\\Windows\\CurrentVersion\\Run" }; //注册表启动项路径
 	char path[MAX_PATH] = { 0 };//需要添加自启动的软件的路径
 	char name[31] = { 0 };//注册表子项名称
 
@@ -790,7 +839,7 @@ int addstart(void)
 		return -1;
 	}
 	//添加一个子Key,并设置值
-	if (RegSetValueEx(hKey, name, 0, REG_SZ, (BYTE *)path, strlen(path)) != ERROR_SUCCESS)
+	if (RegSetValueEx(hKey, name, 0, REG_SZ, (BYTE*)path, strlen(path)) != ERROR_SUCCESS)
 	{
 		RegCloseKey(hKey);//关闭注册表
 		MessageBox(NULL, TEXT("添加失败！"), TEXT("ERROR"), MB_OK | MB_ICONERROR);
@@ -813,7 +862,7 @@ int delstart(void)
 	system("title 删除程序自启动 && cls");
 	char name[31] = { 0 }; //存储名称
 	HKEY hKey;
-	char *regPath = { "Software\\Microsoft\\Windows\\CurrentVersion\\Run" }; //注册表启动项路径
+	char* regPath = { "Software\\Microsoft\\Windows\\CurrentVersion\\Run" }; //注册表启动项路径
 
 	printf("\t    输入000返回上一界面\n\n\n");
 	printf("请输入键值项名称（15个字符内）：");
@@ -840,9 +889,9 @@ int delstart(void)
 //删除fgets读取的换行符
 void fgets_n(char* n)
 {
-	char *find;
+	char* find;
 	find = strchr(n, '\n');  //查找'\n'
-	if (find)                          
+	if (find)
 		*find = '\0';
 }
 
