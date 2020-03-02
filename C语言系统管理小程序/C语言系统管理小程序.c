@@ -5,6 +5,8 @@
 #include <direct.h>//为_getcwd提供声明
 #include <io.h>
 #include <UrlMon.h>
+#include <shellapi.h>
+#include <shlobj.h>
 #pragma comment(lib, "urlmon.lib")
 
 
@@ -15,12 +17,13 @@ int   system_function(void);//系统管理
 void  hosts(void);      //修改hosts
 void  flush(void);      //清除缓冲区
 void  function(void);   //实用功能
-void  delfile(void);    //删除文件
+void  delfile(int mode);    //删除文件
 int   autoshut(void);   //彩蛋
+
 
 //定义全局变量
 int num;
-FILE *fpread, *fpwrite; 
+FILE* fpread, * fpwrite;
 errno_t err;
 
 
@@ -30,7 +33,7 @@ int main(void)
 	while (1)
 	{
 		system("mode con:cols=57 lines=25 && color 0F && title C语言系统管理小程序 请以管理员权限打开本软件");//标题
-		delfile();//删除文件
+		delfile(1);//删除文件
 
 		printf("\n        ------欢迎使用C语言系统管理小程序------\n");
 		printf("\t\t      1、关机\n");
@@ -89,7 +92,7 @@ int main(void)
 		}//switch
 
 	}//while循环使代码执行后返回开头
-		return 0;
+	return 0;
 }
 
 
@@ -123,7 +126,8 @@ int  system_function(void)
 
 		printf("其他：\n");
 		printf("34、修改hosts	   35、结束程序进程     36、打开彩蛋\n");
-		printf("37、创建新文件     38、创建指定大小文件 39、查看系统信息\n\n");
+		printf("37、创建新文件     38、创建指定大小文件 39、查看系统信息\n");
+		printf("40、删除自身\n\n");
 		printf("请输入序号：");
 
 		while (scanf_s("%d", &num) != 1)//处理字符输入
@@ -142,7 +146,7 @@ int  system_function(void)
 		case 4:system("gpedit.msc");    break;
 		case 5:system("lusrmgr.msc");   break;
 		case 6:system("devmgmt.msc");   break;
-		case 7:return 0;					
+		case 7:return 0;
 		case 8:system("winver");        break;
 		case 9:system("regedit");       break;
 		case 10:system("cls && Nslookup"); break;
@@ -189,7 +193,7 @@ int  system_function(void)
 		case 37: {
 			char FileName[MAX_PATH], cmd[MAX_PATH], content[MAX_PATH];
 			system("cls && color 07");
-			
+
 			printf("\n\n请输入文件名：");
 			fgets(FileName, MAX_PATH, stdin);
 			FileName[strlen(FileName) - 1] = '\0';
@@ -224,7 +228,7 @@ int  system_function(void)
 			flush();
 
 			sprintf_s(cmd, MAX_PATH, "fsutil file createnew %s %lld", FileName, size * 1048576);
-		
+
 			printf("\n\n");
 			system(cmd);
 			printf("\n\n");
@@ -233,17 +237,17 @@ int  system_function(void)
 			break;
 		}
 		case 39:system("systeminfo >> 系统信息.txt && 系统信息.txt"); break; //将诊断信息导出到当前程序所在的目录并打开系统信息.txt
-
+		case 40:delfile(2); break;
 		default:printf("\n\n\t输入错误!\n\n"); Sleep(1000); break;
 		}
 	}//while
-	
-}	
+
+}
 
 
 
 //修改hosts
-void hosts(void)  
+void hosts(void)
 {
 	const char host[] = { "# Copyright (c) 1993-2009 Microsoft Corp.\n"
 "#\n"
@@ -310,7 +314,7 @@ void hosts(void)
 			fclose(fpwrite);
 			system("pause");
 		}
-		
+
 		else if (num == 3)
 			break;
 
@@ -350,7 +354,7 @@ int system_config(void)
 	if ((err = fopen_s(&fpwrite, "获取硬件信息.bat", "wb")) != 0)
 	{
 		MessageBox(NULL, TEXT("数据文件创建错误！\n请以管理员权限运行本软件！"), TEXT("Error"), MB_OK | MB_ICONERROR);
-		return 1;             
+		return 1;
 	}
 
 	//看到这应该明白了吧，所谓的DLL文件只是一个改了名字的加密文件，哈哈。
@@ -360,12 +364,12 @@ int system_config(void)
 		fputc(ch, fpwrite); //输出解密后的内容到另一个文件
 	}
 
-	
+
 	fclose(fpwrite);   //关闭文件
 	fclose(fpread);    //关闭文件
 
 	system("attrib +h +s 获取硬件信息.bat");
-	
+
 
 	printf("\n\t   温馨提示：请以管理员权限运行本软件，如已使用管理员权限运行请忽略。\n\n\n\n");
 	printf("\n\n\n\n\t\t正在获取电脑配置信息，约30秒-1分钟左右。请耐心等待...\n\n");
@@ -654,11 +658,42 @@ void flush(void)
 
 
 //删除文件
-void  delfile(void)
+void  delfile(int mode)
 {
-	remove("本机IP信息.txt");
-	remove("系统信息.txt");
-	remove("获取硬件信息.bat");
-	remove("进程信息.txt");
-	remove("使用说明.txt");
+	if (mode == 1)
+	{
+		remove("本机IP信息.txt");
+		remove("系统信息.txt");
+		remove("获取硬件信息.bat");
+		remove("进程信息.txt");
+		remove("使用说明.txt");
+	}
+	else
+	{
+		char command[800], cmdpath[MAX_PATH], filepath[MAX_PATH];
+
+		if (!_access("system.dll", 0))
+		{
+			if (remove("system.dll"))
+			{
+				MessageBox(NULL, TEXT("删除失败！"), TEXT("错误"), MB_OK | MB_ICONERROR);
+				exit(1);
+			}
+		}
+
+		//获得程序自身路径和cmd路径，并删除system.dll
+		if ((GetModuleFileName(NULL, filepath, MAX_PATH) != 0) && (GetEnvironmentVariable("COMSPEC", cmdpath, MAX_PATH) != 0))
+		{
+			sprintf_s(command, 800, "\"%s\" /c del /q \"%s\" > nul", cmdpath, filepath);//命令参数
+			SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);//提高自身进程的优先级
+			SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
+			SHChangeNotify(SHCNE_DELETE, SHCNF_PATH, filepath, NULL);//通知资源浏览器,本程序已经被删除
+			ShellExecute(NULL, "open", cmdpath, command, NULL, SW_HIDE);
+		}
+		else
+			MessageBox(NULL, TEXT("删除失败！"), TEXT("错误"), MB_OK | MB_ICONERROR);
+
+
+		exit(0);
+	}
 }
