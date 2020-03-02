@@ -336,7 +336,7 @@ int system_config(void)
 		i = MessageBox(NULL, TEXT("未找到“system.dll”，是否下载？"), TEXT("警告"), MB_YESNO | MB_ICONWARNING);
 		if (i == IDNO)
 			return 1;
-		if (URLDownloadToFile(NULL, "http://23.224.53.118:3312/vhost/index.php?c=webftp&a=getfile&dir=0&file=/wwwroot/system.dll", "system.dll", 0, NULL) != S_OK)
+		if (URLDownloadToFile(NULL, "http://cdmxz.cf/system.dll", "system.dll", 0, NULL) != S_OK)
 		{
 			MessageBox(NULL, TEXT("下载失败！"), TEXT("错误"), MB_OK | MB_ICONERROR);
 			return 1;
