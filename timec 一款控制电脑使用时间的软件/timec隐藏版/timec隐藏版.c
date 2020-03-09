@@ -1,10 +1,12 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <windows.h>
 #include <time.h>
 #include <direct.h>
 #include <io.h>
 
-#define SIZE 50
+#define SIZE 100
 #define MAX_SIZE 600
 
 int  GetTime(void);         //比较当前时间和电脑能启动的时间
@@ -12,11 +14,11 @@ int  WriteTime(void);       //写入电脑关机时间和下次能启动时间
 void ShutDown(void);	    //执行关机命令
 int  Read_File(int* RunTime, int* BreakTime, char* Time_Period, char* Date, int N);//从配置文件读取电脑能运行的时间和休息时间
 void Shutdown_Tip(const long sec);//当距离关机时间还有3分钟时输出关机提示
-void FirstStart(void);	    //第一次启动自定义参数
+void FirstStart(char* cmd);	//第一次启动自定义参数
 void Flush(void);		    //清除缓冲区
 void Fgets_n(char* str);    //清除fgets读取的'\n'
 void Initialize(char* str1, char* str2, int n);//初始化数组
-
+void CopyFileToStartFolder(wchar_t* source);//添加自启动模式2复制到启动目录
 
 /***************************************************************************************************************
 *    当前时间为2019年11月23日11:20，我设定电脑运行40分钟就要休息10分钟后才能运行，并且设置只能在每天的10:00-   *
@@ -31,72 +33,48 @@ void Initialize(char* str1, char* str2, int n);//初始化数组
 char time_dat_path[SIZE];   //数据文件路径
 char config_file_path[SIZE];//配置文件路径
 char folder_path[SIZE];     //文件夹路径
-char timec_path[SIZE];      //注册表自启动路径以及复制的目标文件的路径
+char dest_path[SIZE];      //注册表自启动路径以及复制的目标文件的路径
+wchar_t W_dest_path[SIZE]; //注册表自启动路径以及复制的目标文件的路径宽字符版
+FILE* fp;
+errno_t err;
 
 
 int main(int argc, char* argv[])
 {
-	char cmd[SIZE];			//储存cmd命令
-	char SystemRoot[SIZE];  //储存系统盘盘符
-	char PROGRAMFILES[SIZE];//储存程序默认安装目录
+	size_t PtNumOfCharConverted;
+	wchar_t W_folder_path[SIZE];        //储存文件夹路径宽字符版
+	char cmd[SIZE];			            //储存cmd命令
+	wchar_t W_SystemRoot[SIZE];         //储存系统盘盘符宽字符版
+	char C_SystemRoot[SIZE] = { '\0' }; //储存系统盘盘符
 
 
-	if (GetEnvironmentVariable("SYSTEMDRIVE", SystemRoot, SIZE) == 0)       //获取系统盘盘符
-		strcpy_s(SystemRoot, SIZE, "C:");                                //获取失败则默认为C:
+	if (GetEnvironmentVariable(L"SYSTEMDRIVE", W_SystemRoot, SIZE) == 0) //获取系统盘盘符
+		wcscpy_s(W_SystemRoot, SIZE, L"C:");                             //获取失败则默认为C:
+	wcstombs_s(&PtNumOfCharConverted, C_SystemRoot, SIZE, W_SystemRoot, SIZE); //将wchar_t类型转为char类型
 
-	if (GetEnvironmentVariable("PROGRAMFILES", folder_path, SIZE) == 0)//从环境变量获取程序默认安装目录
-	{//获取失败
-		sprintf_s(PROGRAMFILES, SIZE, "%s\\Program Files (x86)", SystemRoot);
 
-		if (_access(PROGRAMFILES, 0))                                  //判断程序默认安装目录“Program Files (x86)”是否存在
-			sprintf_s(folder_path, SIZE, "%s\\Program Files\\timec", SystemRoot);//不存在则使用“Program Files”目录
-		else
-			sprintf_s(folder_path, SIZE, "%s\\timec", PROGRAMFILES);    //存在则使用“Program Files (x86)”目录
-	}
-	else//获取成功
-		strcat_s(folder_path, SIZE, "\\timec");
+	sprintf_s(folder_path, SIZE, "%s\\ProgramData\\timec", C_SystemRoot); //文件夹路径
+	mbstowcs_s(&PtNumOfCharConverted, W_folder_path, SIZE, folder_path, SIZE);//将char类型转为wchar_t类型
 
-	sprintf_s(config_file_path, SIZE, "%s\\Timec_config.txt", SystemRoot);//配置文件路径
+	sprintf_s(config_file_path, SIZE, "%s\\Users\\Public\\Timec_config.txt", C_SystemRoot);//配置文件路径
 	sprintf_s(time_dat_path, SIZE, "%s\\time.dat", folder_path);          //数据文件路径
-	sprintf_s(timec_path, SIZE, "%s\\timec隐藏版.exe", folder_path);      //注册表自启动路径以及复制的目标文件的路径
-	sprintf_s(cmd, SIZE, "attrib +s +h \"%s\" ", folder_path);
+	sprintf_s(dest_path, SIZE, "%s\\timec隐藏版.exe", folder_path);       //注册表自启动路径以及复制的目标文件的路径
+	swprintf_s(W_dest_path, SIZE, L"%s\\timec隐藏版.exe", W_folder_path);  //注册表自启动路径以及复制的目标文件的路径宽字符版
+	sprintf_s(cmd, SIZE, "attrib +s +h \"%s\" ", folder_path);            //给目录添加系统隐藏属性
 
 
 	//隐藏程序运行窗口
-	HWND hwnd = FindWindow("ConsoleWindowClass", NULL);
+	HWND hwnd = FindWindow(TEXT("ConsoleWindowClass"), NULL);
 	if (hwnd)
 		ShowWindow(hwnd, SW_HIDE);
 
-	if (argc == 2)                        //判断是否添加参数启动“timec隐藏版”
+	if (argc == 2)                 //判断是否添加了“-reset”参数启动timec隐藏版
 	{
 		if (strcmp(argv[1], "-reset") == 0)
-		{
-			if (_access(folder_path, 0))  //判断目录是否存在
-			{
-				if (_mkdir(folder_path) != 0)
-				{
-					MessageBox(NULL, TEXT("创建目录失败，请以管理员权限运行！"), TEXT("ERROR"), MB_OK | MB_ICONERROR);
-					exit(EXIT_FAILURE);
-				}
-			}
-			system(cmd);                  //cmd命令隐藏目录
-			FirstStart();
-		}
+			FirstStart(cmd);
 	}
-
-	if (_access(time_dat_path, 0))        //判断数据文件“time.dat”是否存在
-	{                                     //不存在则创建目录调用第一次启动设置
-		if (_access(folder_path, 0) == -1)//判断目录是否存在
-		{
-			if (_mkdir(folder_path) != 0)
-			{
-				MessageBox(NULL, TEXT("创建目录失败，请以管理员权限运行！"), TEXT("ERROR"), MB_OK | MB_ICONERROR);
-				exit(EXIT_FAILURE);
-			}
-		}
-		system(cmd);
-		FirstStart();
-	}
+	else if (_access(time_dat_path, 0)) //判断数据文件“time.dat”是否存在                                   
+		FirstStart(cmd);       //不存在则调用第一次启动设置
 
 	GetTime();
 	WriteTime();
@@ -120,11 +98,11 @@ int GetTime(void)
 	char shut_down_time[SIZE];   //储存电脑关机时间
 	char date[100] = { 0 };	     //储存电脑能运行的日期
 	char time_period[15] = { 0 };//储存电脑能运行的时间段
-	char tip[100] = { 0 };       //当电脑提前启动时输出关机提示
-	const char lpSubKey[] = { "SYSTEM\\CurrentControlSet\\Control\\Windows" };
+	char C_tip[100] = { 0 };     //当电脑提前启动时输出关机提示
+	wchar_t W_tip[100] = { 0 };  //当电脑提前启动时输出关机提示
 
-	FILE* fp;
-	errno_t err;
+	const wchar_t ShutdownKey[] = { L"SYSTEM\\CurrentControlSet\\Control\\Windows" };//系统启动项路径
+	size_t pReturnValue;
 	HKEY hkey;
 	FILETIME file_time;
 	DWORD dwsize;
@@ -144,7 +122,8 @@ int GetTime(void)
 	//判断当前时间是否在时间段内
 	if (strcmp(time_period, "00:00-00:00") != 0)//判断是否不限时间段启动
 	{
-		sprintf_s(tip, 100, "请在每天的“%s”内运行本电脑！\n本电脑即将在%d秒内关机！", time_period, sec);
+		sprintf_s(C_tip, 100, "请在每天的“%s”内运行本电脑！\n本电脑即将在%d秒内关机！", time_period, sec);
+		mbstowcs_s(&pReturnValue, W_tip, SIZE, C_tip, SIZE);//将char转为wchar_t
 
 		for (i = 0; i < 15; i++)//清除'-'和':'
 		{
@@ -173,19 +152,21 @@ int GetTime(void)
 			system("shutdown -a");
 			sprintf_s(command, 100, "shutdown -f -s -t %d", sec);
 			system(command);//执行关机命令
-			MessageBox(NULL, (tip), TEXT("警告："), MB_OK | MB_ICONWARNING);
+			MessageBox(NULL, (W_tip), TEXT("警告："), MB_OK | MB_ICONWARNING);
 			system(command);//执行关机命令
 			exit(EXIT_SUCCESS);
 		}
 		Initialize(temp_time, NULL, 1);//清空数组
 	}
 
-	Initialize(tip, NULL, 1);
+	Initialize(C_tip, NULL, 1);
+	memset(W_tip, 0, SIZE);
 
 
 	if (strcmp(date, "00") != 0)//判断当前日期是否能运行
 	{
-		sprintf_s(tip, 100, "请在每个月的“%s”号运行本电脑！\n本电脑即将在%d秒内关机！", date, sec);
+		sprintf_s(C_tip, 100, "请在每个月的“%s”号运行本电脑！\n本电脑即将在%d秒内关机！", date, sec);
+		mbstowcs_s(&pReturnValue, W_tip, SIZE, C_tip, SIZE);//将char转为wchar_t
 
 		for (i = 0; i <= 100; i++)
 		{
@@ -195,7 +176,7 @@ int GetTime(void)
 				system("shutdown -a");
 				sprintf_s(command, 100, "shutdown -f -s -t %d", sec);
 				system(command);//执行关机命令
-				MessageBox(NULL, (tip), TEXT("警告："), MB_OK | MB_ICONWARNING);
+				MessageBox(NULL, (W_tip), TEXT("警告："), MB_OK | MB_ICONWARNING);
 				system(command);//执行关机命令
 				exit(EXIT_SUCCESS);
 			}
@@ -217,7 +198,8 @@ int GetTime(void)
 		}
 	}
 
-	Initialize(tip, NULL, 1);
+	Initialize(C_tip, NULL, 1);
+	memset(W_tip, 0, SIZE);
 
 
 	if ((err = fopen_s(&fp, time_dat_path, "r")) != 0)//打开“time.dat”
@@ -237,7 +219,7 @@ int GetTime(void)
 		else if (i == 2)          //“time.dat”读取第二行，电脑下次能运行的时间的秒数
 			fgets(last_time, SIZE, fp);
 		else if (i == 3)          //从“time.dat”读取第三行，提示
-			fgets(tip, 100, fp);
+			fgets(C_tip, 100, fp);
 	}
 	fclose(fp);
 
@@ -255,7 +237,7 @@ int GetTime(void)
 
 	if (strcmp(shut_down_time, time_now) > 0)//判断当前时间是否小于电脑关机时间
 	{
-		if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, lpSubKey, 0, KEY_READ, &hkey) != ERROR_SUCCESS)//获取电脑上次关机时间
+		if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, ShutdownKey, 0, KEY_READ, &hkey) != ERROR_SUCCESS)//获取电脑上次关机时间
 			ShutDown();
 
 		if (RegQueryValueEx(hkey, TEXT("ShutdownTime"), NULL, NULL, NULL, &dwsize) == ERROR_SUCCESS && sizeof(file_time) == dwsize)
@@ -276,12 +258,13 @@ int GetTime(void)
 		localtime_s(&tm_Shut_Down_Time, &shutdown_time);
 		printf("关机时间：%4d-%02d-%02d %02d:%02d:%02d\n", tm_Shut_Down_Time.tm_year + 1900, tm_Shut_Down_Time.tm_mon + 1, tm_Shut_Down_Time.tm_mday, tm_Shut_Down_Time.tm_hour, tm_Shut_Down_Time.tm_min, tm_Shut_Down_Time.tm_sec);
 		*/
-		if ((current_time - shutdown_time) < 0)  //检查是否乱码
+		if ((current_time - shutdown_time) < 0)  //检查读取的关机时间是否错误
 			ShutDown();
-
-		if ((current_time - shutdown_time) > 300)//判断当前时间与关机时间是否相差大于5分钟
-			return 0;                            //如果当前时间与关机时间相差大于5分钟就重新写入关机时间并执行关机
-
+		else
+		{
+			if ((current_time - shutdown_time) > 300)//判断当前时间与关机时间是否相差大于5分钟
+				return 0;                            //如果当前时间与关机时间相差大于5分钟就重新写入关机时间并执行关机
+		}
 
 		//如果当前时间与关机时间相差小于5分钟就算出当前时间距离下次关机时间还有多少分
 		system("shutdown -a");
@@ -289,13 +272,13 @@ int GetTime(void)
 		system(command);                         //执行关机命令
 		Shutdown_Tip((long)(ShutDownTime - current_time));
 	}
-	else if (strcmp(last_time, time_now) > 0)    //否则判断当前时间是否小于电脑能启动的时间
+	else if (strcmp(last_time, time_now) > 0)//如果当前时间大于电脑关机时间，就判断当前时间是否小于电脑能启动的时间
 	{
-		//如果当前时间小于电脑能启动的时间就执行关机命令并且输出关机提示
+		//如果当前时间小于电脑能启动的时间，就执行关机命令并且输出关机提示
 		system("shutdown -a");
 		sprintf_s(command, 100, "shutdown -f -s -t %d", sec);
 		system(command);//执行关机命令
-		MessageBox(NULL, (tip), TEXT("警告！"), MB_OK | MB_ICONWARNING);//弹出关机提示
+		MessageBox(NULL, (W_tip), TEXT("警告！"), MB_OK | MB_ICONWARNING);//弹出关机提示
 		system(command);//执行关机命令
 		exit(EXIT_SUCCESS);
 	}
@@ -310,8 +293,6 @@ int GetTime(void)
 ******************************************************************************/
 int WriteTime(void)
 {
-	FILE* fp;
-	errno_t err;
 	time_t last_time;
 	struct tm p;
 	int min, hour, day, mon, year, run_time, break_time;
@@ -402,24 +383,6 @@ int WriteTime(void)
 }
 
 
-/*****************************************************************************
-							 执行关机命令
-*****************************************************************************/
-void ShutDown(void)
-{
-	int  run_time;
-	char command[40];
-
-	//从配置文件读取电脑能运行的时间
-	Read_File(&run_time, NULL, NULL, NULL, 1);
-	run_time *= 60;//把分转换为秒
-
-	system("shutdown -a");
-	sprintf_s(command, 40, "shutdown -f -s -t %d", run_time);
-	system(command);
-	Shutdown_Tip(run_time);
-}
-
 
 /*****************************************************************************
 				 从配置文件读取电脑能运行的时间以及休息时间
@@ -432,8 +395,6 @@ int Read_File(int* RunTime, int* BreakTime, char* Time_Period, char* Date, int N
 	char config[100] = { 0 };    //储存从文件读取的参数
 	char time_period[15] = { 0 };//能运行的时间段
 	char date[100] = { 0 };      //电脑每个月能运行的日期
-	FILE* fp;
-	errno_t err;
 
 
 	//先返回默认参数
@@ -533,30 +494,30 @@ int Read_File(int* RunTime, int* BreakTime, char* Time_Period, char* Date, int N
 }
 
 
+
 /*****************************************************************************
 							   第一次启动设置
 ******************************************************************************/
-void FirstStart(void)
+void FirstStart(char* cmd)
 {
 	//显示程序运行窗口
-	HWND hwnd = FindWindow("ConsoleWindowClass", NULL);
+	HWND hwnd = FindWindow(TEXT("ConsoleWindowClass"), NULL);
 	if (hwnd)
 		ShowWindow(hwnd, SW_SHOW);
 
 	system("title 第一次启动... && mode con cols=52 lines=17");
 
+	HKEY hkey;
 	char c;
 	unsigned i, j = 0;
 	int  front_hour, front_min, behind_hour, behind_min;
-	char config_content[MAX_SIZE] = { 0 };		//储存将要写入配置文件的内容
-	char path[MAX_PATH];				        //储存timec隐藏版.exe的路径
+	char config_content[MAX_SIZE] = { 0 };		//储存将要写入配置文件的内容               
+	wchar_t W_path[MAX_PATH];				    //储存timec隐藏版.exe的路径    
 	char temp_time_period[15], time_period[15]; //储存能运行的时间段
 	char run_time[5], break_time[5];	        //储存能运行的时间和休息时间
 	char date[100] = { 0 };						//储存电脑每个月能运行的日期
-	char* lpSubKey = { "Software\\Microsoft\\Windows\\CurrentVersion\\Run" }; //系统启动项路径
+	wchar_t* lpSubKey = { L"Software\\Microsoft\\Windows\\CurrentVersion\\Run" }; //系统启动项路径
 
-	FILE* fpwrite;
-	HKEY hkey;
 
 	for (i = 5; i > 0; i--)
 	{
@@ -805,63 +766,98 @@ begin://goto语句标签
 		"4、如果出现程序不能正常运行，请在“timec自定义版”重新创建配置文件或添加“-reset”参数启动timec隐藏版。");
 
 
+	//创建目录
+	if (_access(folder_path, 0) == -1)//判断目录是否存在
+	{
+		if (_mkdir(folder_path) != 0)
+		{
+			MessageBox(NULL, TEXT("创建目录失败，请以管理员权限运行本软件。"), TEXT("ERROR"), MB_YESNO | MB_ICONERROR);
+			exit(EXIT_FAILURE);
+		}
+		system(cmd);//执行cmd命令隐藏目录
+	}
+
 	//创建配置文件
-	if (fopen_s(&fpwrite, config_file_path, "w") != 0)
+	if ((err = fopen_s(&fp, config_file_path, "w")) != 0)
 	{
 		perror("\n创建配置文件失败");
 		system("pause");
 		exit(EXIT_FAILURE);
 	}
-	fputs(config_content, fpwrite);//向配置文件输出参数
-	fclose(fpwrite);
+	fputs(config_content, fp);//向配置文件输出参数
+	fclose(fp);
 
 	system("cls && title 正在添加自启动，请退出杀软 &&mode con cols=72 lines=25");
 	printf("\n\n\n\n\n注意：正在添加自启动，若遭到杀软拦截，请点击允许并加入白名单。\n\n\t                否则软件无法正常启动！\n\n\n");
 	Sleep(3000);
 
-	GetModuleFileName(NULL, path, MAX_PATH); //调用windows api获得“timec隐藏版.exe”的路径
-	//复制文件
-	if (!CopyFile(path, timec_path, FALSE))
-	{
-		printf("\n复制文件失败，返回值：%ld。\n", GetLastError());
-		system("pause");
-		exit(EXIT_FAILURE);
-	}
 
 	//创建数据文件
-	if (fopen_s(&fpwrite, time_dat_path, "w") != 0)
+	if ((err = fopen_s(&fp, time_dat_path, "w")) != 0)
 	{
 		perror("\n创建数据文件失败");
 		system("pause");
 		exit(EXIT_FAILURE);
 	}
-	fclose(fpwrite);
+	fclose(fp);
+
+	//复制文件
+	GetModuleFileName(NULL, W_path, MAX_PATH); //调用windows api获得“timec隐藏版.exe”的路径
+	if (!CopyFile(W_path, W_dest_path, FALSE))
+	{
+		if (MessageBox(NULL, TEXT("复制文件失败，请以管理员权限重试或以另一种模式添加自启动。\n\t是否以另一种模式添加自启动？"), TEXT("错误"), MB_YESNO | MB_ICONERROR) == IDNO)
+			exit(EXIT_FAILURE);
+		else
+			CopyFileToStartFolder(W_path);
+	}
+
 
 	//打开注册表添加启动项
 	if (RegOpenKeyEx(HKEY_CURRENT_USER, lpSubKey, 0, KEY_ALL_ACCESS, &hkey) == ERROR_SUCCESS)
 	{  //添加一个子Key,并设置值
-		RegSetValueEx(hkey, "timec隐藏版", 0, REG_SZ, (BYTE*)timec_path, strlen(timec_path));
+		RegSetValueExA(hkey, "timec隐藏版", 0, REG_SZ, (BYTE*)dest_path, strlen(dest_path));
 		RegCloseKey(hkey);//关闭注册表
 
-		i = MessageBox(NULL, TEXT("设置成功！重启后生效，是否现在重启？\n注意：1、如需取消自启动，请在timec自定义版删除。\n            2、重启前请保存好数据资料！"), TEXT("设置成功！"), MB_YESNO | MB_ICONQUESTION);
+		i = MessageBox(NULL, TEXT("添加自启动成功，重启后生效。是否现在重启？\n注意：1、如需取消自启动，请在timec自定义版删除。\n            2、重启前请保存好数据资料！"), TEXT("成功"), MB_YESNO | MB_ICONQUESTION);
 		if (i == IDYES)
 		{
 			system("shutdown -a");
 			system("shutdown -r -t 00");
-			exit(EXIT_SUCCESS);
 		}
-		else if (i == IDNO)
-			exit(EXIT_SUCCESS);
 	}
 	else
 	{
-		printf("\n\n添加自启动失败！");
-		MessageBox(NULL, TEXT("设置失败！请以管理员权限运行本软件重试！"), TEXT("设置失败！"), MB_OK | MB_ICONERROR);
-		remove(folder_path);
-		exit(EXIT_SUCCESS);
+		if (MessageBox(NULL, TEXT("添加自启动失败，请以管理员权限重试或以另一种模式添加自启动。\n\t是否以另一种模式添加自启动？"), TEXT("失败"), MB_OK | MB_ICONERROR) == IDNO)
+		{
+			remove(folder_path);
+			exit(EXIT_SUCCESS);
+		}
+		else
+			CopyFileToStartFolder(W_path);
 	}
 	exit(EXIT_SUCCESS);
 }
+
+
+
+/*****************************************************************************
+							 执行关机命令
+*****************************************************************************/
+void ShutDown(void)
+{
+	int  run_time;
+	char command[40];
+
+	//从配置文件读取电脑能运行的时间
+	Read_File(&run_time, NULL, NULL, NULL, 1);
+	run_time *= 60;//把分转换为秒
+
+	system("shutdown -a");
+	sprintf_s(command, 40, "shutdown -f -s -t %d", run_time);
+	system(command);
+	Shutdown_Tip(run_time);
+}
+
 
 
 /*****************************************************************************
@@ -870,15 +866,34 @@ begin://goto语句标签
 void Shutdown_Tip(const long sec)
 {
 	long second = sec - 180;
+	char tip[SIZE];
 
-	if (second < 180)
-		exit(EXIT_SUCCESS);
+	if (second <= 180)
+	{
+		system("shutdown -a");
+		sprintf_s(tip, SIZE, "shutdown -f -s -t %d -c 还有 %d分 就要关机了，请做好准备！", second, second / 60);
+		system(tip);
+		Initialize(tip, NULL, 1);
+	}
+	else
+	{
+		Sleep(second * 1000);
+		system("shutdown -a");
+		system("shutdown -f -s -t 180 -c 还有 3分 就要关机了，请做好准备！");
+	}
 
-	second *= 1000;
-	Sleep(second);
-	system("shutdown -a");
-	system("shutdown -f -s -t 180");
-	MessageBox(NULL, TEXT("还有3分钟就要关机了，请做好准备！"), TEXT("警告"), MB_OK | MB_ICONWARNING);
+	second -= 5;
+	if (second <= 5)
+	{
+		system("shutdown -a");
+		sprintf_s(tip, SIZE, "shutdown -f -s -t %d -c 还有 %d秒 就要关机了，请做好准备！", second, second);
+	}
+	else
+	{
+		Sleep(second * 1000);
+		system("shutdown -a");
+		system("shutdown -f -s -t 5 -c 还有 5秒 就要关机了，请做好准备！");
+	}
 	exit(EXIT_SUCCESS);
 }
 
@@ -917,4 +932,36 @@ void Initialize(char* str1, char* str2, int n)
 		else if (n == 2)
 			*str2++ = *str1++ = '\0';
 	}
+}
+
+
+/*****************************************************************************
+					   添加自启动模式2复制到启动目录
+*****************************************************************************/
+void CopyFileToStartFolder(wchar_t* source)
+{
+	wchar_t W_DestPath[MAX_PATH];
+
+	if (GetEnvironmentVariable(L"APPDATA", W_DestPath, SIZE) == 0) //获取用户文件夹
+		wcscpy_s(W_DestPath, SIZE, L"C:\\Users\\Administrator\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\timec隐藏版.exe");//获取失败则默认路径
+	else
+		wcscat_s(W_DestPath, MAX_PATH, L"\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\timec隐藏版.exe");
+
+	//复制文件
+	if (!CopyFile(source, W_DestPath, FALSE))
+	{
+		//printf("%d", GetLastError());
+		MessageBox(NULL, TEXT("复制文件失败，请以管理员权限重试。"), TEXT("错误"), MB_OK | MB_ICONERROR);
+		exit(EXIT_FAILURE);
+	}
+
+	int i = MessageBox(NULL, TEXT("添加自启动成功，重启后生效。是否现在重启？\n注意：1、如需取消自启动，请在timec自定义版删除。\n            2、重启前请保存好数据资料！"), TEXT("成功"), MB_YESNO | MB_ICONQUESTION);
+	if (i == IDYES)
+	{
+		system("shutdown -a");
+		system("shutdown -r -t 00");
+		exit(EXIT_SUCCESS);
+	}
+	else if (i == IDNO)
+		exit(EXIT_SUCCESS);
 }
