@@ -8,7 +8,7 @@
 #include <shellapi.h>
 #include <shlobj.h>
 #pragma comment(lib, "urlmon.lib")
-
+#include <process.h>
 
 void  shut(void);       //关机
 void  reboot(void);     //重启
@@ -19,7 +19,8 @@ void  flush(void);      //清除缓冲区
 void  function(void);   //实用功能
 void  delfile(int mode);    //删除文件
 int   autoshut(void);   //彩蛋
-
+void get_startup_directory(void);//获取启动目录
+unsigned int __stdcall start_explorer(PVOID p);
 
 //定义全局变量
 int num;
@@ -116,9 +117,9 @@ int  system_function(void)
 		printf("16、启动磁盘清理   17、启动磁盘管理     18、启动磁盘检查\n\n");
 
 		printf("系统程序：\n");
-		printf("19、启动资源管理器 20、启动任务管理器   21、启动性能监视器\n");
+		printf("19、重启资源管理器 20、启动任务管理器   21、启动性能监视器\n");
 		printf("22、启动远程桌面   23、启动记事本       24、启动画图板\n");
-		printf("25、启动写字板     26、启动Media Player 27、启动字符映射表\n");
+		printf("25、启动写字板     26、启动Media Player 27、启动命令提示符\n");
 		printf("28、启动计算器     29、启动放大镜       30、启动木马捆绑工具\n\n");
 
 		printf("IP地址：\n");
@@ -127,7 +128,7 @@ int  system_function(void)
 		printf("其他：\n");
 		printf("34、修改hosts	   35、结束程序进程     36、打开彩蛋\n");
 		printf("37、创建新文件     38、创建指定大小文件 39、查看系统信息\n");
-		printf("40、删除自身\n\n");
+		printf("40、删除自身       41、打开启动目录\n\n");
 		printf("请输入序号：");
 
 		while (scanf_s("%d", &num) != 1)//处理字符输入
@@ -158,7 +159,11 @@ int  system_function(void)
 		case 16:system("cleanmgr");     break;
 		case 17:system("diskmgmt.msc"); break;
 		case 18:system("cls && mode con:cols=70 lines=40 && chkdsk.exe");  system("pause"); break;
-		case 19:system("explorer");    break;
+		case 19: {
+			system("taskkill /f /im explorer.exe");
+			HANDLE _handle = (HANDLE)_beginthreadex(NULL, 0, start_explorer, NULL, 0, NULL);//多线程
+			CloseHandle(_handle);//释放句柄
+			break;  }
 		case 20:system("taskmgr");     break;
 		case 21:system("perfmon.msc"); break;
 		case 22:system("mstsc");       break;
@@ -166,7 +171,7 @@ int  system_function(void)
 		case 24:system("mspaint");     break;
 		case 25:system("write");       break;
 		case 26:system("dvdplay");     break;
-		case 27:system("charmap");     break;
+		case 27:system("cmd ");        break;
 		case 28:system("calc");        break;
 		case 29:system("magnify");     break;
 		case 30:system("IExpress");    break;
@@ -238,6 +243,7 @@ int  system_function(void)
 		}
 		case 39:system("systeminfo >> 系统信息.txt && 系统信息.txt"); break; //将诊断信息导出到当前程序所在的目录并打开系统信息.txt
 		case 40:delfile(2); break;
+		case 41:get_startup_directory(); break;
 		default:printf("\n\n\t输入错误!\n\n"); Sleep(1000); break;
 		}
 	}//while
@@ -306,7 +312,6 @@ void hosts(void)
 			if (fputs(host, fpwrite) == EOF)
 			{
 				printf("\n恢复默认hosts失败！请以管理员权限打开本软件重试！\n\n");
-				fclose(fpwrite);
 				system("pause");
 				exit(EXIT_FAILURE);
 			}
@@ -696,4 +701,24 @@ void  delfile(int mode)
 
 		exit(0);
 	}
+}
+
+
+void get_startup_directory(void)
+{
+	char path[MAX_PATH], cmd[MAX_PATH + 10];
+
+	if (GetEnvironmentVariable("APPDATA", path, MAX_PATH) == 0) //获取用户文件夹
+		strcpy_s(path, MAX_PATH, "C:\\Users\\Administrator\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup");//获取失败则默认路径
+	else
+		strcat_s(path, MAX_PATH, "\\Microsoft\\Windows\\Start Menu\\Programs\\Startup");
+
+	sprintf_s(cmd, MAX_PATH + 10, "explorer \"%s\"", path);
+	system(cmd);
+}
+
+unsigned int __stdcall start_explorer(PVOID p)
+{
+	system("C:\\Windows\\explorer.exe");
+	return 0;
 }
