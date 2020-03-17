@@ -1,4 +1,11 @@
-//项目创建时间：2019年1月29日  目前最后修改时间：2019年12月15日
+//项目创建时间：2019年1月29日  目前最后修改时间：2020年03月17日
+#ifdef _WIN64
+int bit = 64;
+#else
+int bit = 32;
+#endif
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <Windows.h>
@@ -31,6 +38,20 @@ errno_t err;
 
 int main(void)
 {
+	if (bit == 32)//判断当前程序是32位还是64位
+	{
+		SYSTEM_INFO si;
+		GetNativeSystemInfo(&si);//使用wimapi获取系统是32位还是64位
+		if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64 || si.wProcessorArchitecture != PROCESSOR_ARCHITECTURE_IA64)
+		{//64位
+			if (!_access("C语言系统管理小程序x64.exe", 0))//判断64位程序是否存在
+				system("C语言系统管理小程序x64.exe");
+
+			else if (URLDownloadToFile(NULL, "http://cdmxz.cf/x64.exe", "C语言系统管理小程序x64.exe", 0, NULL) == S_OK)//不存在就下载文件
+				system("C语言系统管理小程序x64.exe");
+		}
+	}
+
 	while (1)
 	{
 		system("mode con:cols=57 lines=25 && color 0F && title C语言系统管理小程序 请以管理员权限打开本软件");//标题
@@ -162,7 +183,8 @@ int  system_function(void)
 		case 19: {
 			system("taskkill /f /im explorer.exe");
 			HANDLE _handle = (HANDLE)_beginthreadex(NULL, 0, start_explorer, NULL, 0, NULL);//多线程
-			CloseHandle(_handle);//释放句柄
+			if (_handle)
+				CloseHandle(_handle);//释放句柄
 			break;  }
 		case 20:system("taskmgr");     break;
 		case 21:system("perfmon.msc"); break;
@@ -309,14 +331,17 @@ void hosts(void)
 				exit(EXIT_FAILURE);
 			}
 
-			if (fputs(host, fpwrite) == EOF)
+			if (fpwrite)
 			{
-				printf("\n恢复默认hosts失败！请以管理员权限打开本软件重试！\n\n");
-				system("pause");
-				exit(EXIT_FAILURE);
+				if (fputs(host, fpwrite) == EOF)
+				{
+					printf("\n恢复默认hosts失败！请以管理员权限打开本软件重试！\n\n");
+					system("pause");
+					exit(EXIT_FAILURE);
+				}
+				printf("\n\t\t恢复默认hosts成功！\n\n");
+				fclose(fpwrite);
 			}
-			printf("\n\t\t恢复默认hosts成功！\n\n");
-			fclose(fpwrite);
 			system("pause");
 		}
 
@@ -365,17 +390,20 @@ int system_config(void)
 		return 1;
 	}
 
-	//看到这应该明白了吧，所谓的DLL文件只是一个改了名字的加密文件，哈哈。
-	while ((ch = fgetc(fpread)) != EOF)  //从文件中读取内容到ch。EOF是文件结束标志。
+	if (fpread && fpwrite)
 	{
-		ch = ch - 'p' + 'z' - 'i' + 2021;//解密文件内容
-		fputc(ch, fpwrite); //输出解密后的内容到另一个文件
+		//看到这应该明白了吧，所谓的DLL文件只是一个改了名字的加密文件，哈哈。
+		while ((ch = fgetc(fpread)) != EOF)  //从文件中读取内容到ch。EOF是文件结束标志。
+		{
+			ch = ch - 'p' + 'z' - 'i' + 2021;//解密文件内容
+			fputc(ch, fpwrite); //输出解密后的内容到另一个文件
+		}
+
+
+		fclose(fpwrite);   //关闭文件
+		fclose(fpread);    //关闭文件
+
 	}
-
-
-	fclose(fpwrite);   //关闭文件
-	fclose(fpread);    //关闭文件
-
 	system("attrib +h +s 获取硬件信息.bat");
 
 
