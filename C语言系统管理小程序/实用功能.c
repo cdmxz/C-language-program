@@ -209,7 +209,8 @@ void Encrypt_or_decrypt(void)
 			fgets(filename, MAX_PATH, stdin);
 			fgets_n(filename);
 
-			for (i = 0; i < MAX_PATH; i++)//¼ÓÃÜ×Ö·û´®
+			j = (unsigned)strlen(filename);
+			for (i = 0; i <= j; i++)//¼ÓÃÜ×Ö·û´®
 				filename[i] += 115;
 
 			//Ð´ÈëÎÄ¼þ
@@ -241,7 +242,9 @@ void Encrypt_or_decrypt(void)
 			fgets(filename, MAX_PATH, stdin);
 			fgets_n(filename);
 
-			for (i = 0; i < MAX_PATH; i++)//½âÃÜ×Ö·û´®
+
+			j = (unsigned)strlen(filename);
+			for (i = 0; i <= j; i++)//¼ÓÃÜ×Ö·û´®
 				filename[i] -= 115;
 
 			//Ð´ÈëÎÄ¼þ
