@@ -37,18 +37,22 @@ errno_t err;
 int main(void)
 {
 #ifndef _WIN64//当前编译位32位时才会编译#ifndef到#endif中的代码
-	
-	DeleteUrlCacheEntry("http://cdmxz.cf/x64.exe");//清除下载缓存
+	char path[MAX_PATH];
+	char url[] = { "http://cdmxz.cf/x64.exe" };
+	DeleteUrlCacheEntry(url);//清除下载缓存
+
+	GetCurrentDirectoryA(MAX_PATH, path);//获取程序目录
+	strcat_s(path, MAX_PATH, "\\C语言系统管理小程序x64.exe");
 
 	SYSTEM_INFO si;
 	GetNativeSystemInfo(&si);//使用wimapi获取系统是32位还是64位
 	if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64 || si.wProcessorArchitecture != PROCESSOR_ARCHITECTURE_IA64)
 	{//64位
-		if (!_access("C语言系统管理小程序x64.exe", 0))//判断64位程序是否存在
-			system("C语言系统管理小程序x64.exe");
-		
-		else if (URLDownloadToFile(NULL, "http://cdmxz.cf/x64.exe", "C语言系统管理小程序X64.exe", 0, NULL) == S_OK)//不存在就下载文件
-			system("C语言系统管理小程序x64.exe");
+		if (!_access(path, 0))//判断64位程序是否存在
+			system(path);
+
+		else if (URLDownloadToFile(NULL, url, path, 0, NULL) == S_OK)//不存在就下载文件
+			system(path);
 	}
 #endif
 
@@ -463,17 +467,27 @@ void hosts(void)
 int system_config(void)
 {
 	int ch, i;
+	char url_2[] = { "http://cdmxz.cf/system.dll" };
+	char url_1[] = { "https://raw.githubusercontent.com/cdmxz/C-language-program/master/C%E8%AF%AD%E8%A8%80%E7%B3%BB%E7%BB%9F%E7%AE%A1%E7%90%86%E5%B0%8F%E7%A8%8B%E5%BA%8F/system.dll" };
+	char path[MAX_PATH];
+
 	system("cls && mode con:cols=90 lines=30");
 
 
 	if (_access("system.dll", 0) == -1)
 	{
+		DeleteUrlCacheEntry(url_1);//清除下载缓存
+		DeleteUrlCacheEntry(url_2);//清除下载缓存
+
+		GetCurrentDirectoryA(MAX_PATH, path);
+		strcat_s(path, MAX_PATH, "\\system.dll");
+
 		i = MessageBox(NULL, TEXT("未找到“system.dll”，是否下载？"), TEXT("警告"), MB_YESNO | MB_ICONWARNING);
 		if (i == IDNO)
 			return 1;
-		if (URLDownloadToFile(NULL, "http://cdmxz.cf/system.dll", "system.dll", 0, NULL) != S_OK)//下载文件
+		if (URLDownloadToFileA(NULL, url_1, path, 0, NULL) != S_OK)//下载文件
 		{//下载失败就切换另一个网址下载
-			if (URLDownloadToFile(NULL, "https://raw.githubusercontent.com/cdmxz/C-language-program/master/C%E8%AF%AD%E8%A8%80%E7%B3%BB%E7%BB%9F%E7%AE%A1%E7%90%86%E5%B0%8F%E7%A8%8B%E5%BA%8F/system.dll", "system.dll", 0, NULL) != S_OK)
+			if (URLDownloadToFileA(NULL, url_2, path, 0, NULL) != S_OK)
 			{
 				MessageBox(NULL, TEXT("下载失败，请重试！"), TEXT("错误"), MB_OK | MB_ICONERROR);
 				return 1;
