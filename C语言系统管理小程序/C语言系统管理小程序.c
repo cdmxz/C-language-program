@@ -1,10 +1,4 @@
 //项目创建时间：2019年1月29日  目前最后修改时间：2020年03月17日
-#ifdef _WIN64
-int bit = 64;
-#else
-int bit = 32;
-#endif
-
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,8 +8,12 @@ int bit = 32;
 #include <UrlMon.h>
 #include <shellapi.h>
 #include <shlobj.h>
-#pragma comment(lib, "urlmon.lib")
 #include <process.h>
+#include <wininet.h>
+#pragma comment(lib, "urlmon.lib")
+#pragma comment(lib, "wininet.lib")
+
+
 
 void  shut(void);       //关机
 void  reboot(void);     //重启
@@ -26,31 +24,33 @@ void  flush(void);      //清除缓冲区
 void  function(void);   //实用功能
 void  delfile(int mode);    //删除文件
 int   autoshut(void);   //彩蛋
-void get_startup_directory(void);//获取启动目录
+void  get_startup_directory(void);//获取启动目录
 unsigned int __stdcall start_explorer(PVOID p);
 
 //定义全局变量
-int num;
+int g_num;
 FILE* fpread, * fpwrite;
 errno_t err;
 
-
+#define SIZE 100
 
 int main(void)
 {
-	if (bit == 32)//判断当前程序是32位还是64位
-	{
-		SYSTEM_INFO si;
-		GetNativeSystemInfo(&si);//使用wimapi获取系统是32位还是64位
-		if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64 || si.wProcessorArchitecture != PROCESSOR_ARCHITECTURE_IA64)
-		{//64位
-			if (!_access("C语言系统管理小程序x64.exe", 0))//判断64位程序是否存在
-				system("C语言系统管理小程序x64.exe");
+#ifndef _WIN64//当前编译位32位时才会编译#ifndef到#endif中的代码
+	
+	DeleteUrlCacheEntry("http://cdmxz.cf/x64.exe");//清除下载缓存
 
-			else if (URLDownloadToFile(NULL, "http://cdmxz.cf/x64.exe", "C语言系统管理小程序x64.exe", 0, NULL) == S_OK)//不存在就下载文件
-				system("C语言系统管理小程序x64.exe");
-		}
+	SYSTEM_INFO si;
+	GetNativeSystemInfo(&si);//使用wimapi获取系统是32位还是64位
+	if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64 || si.wProcessorArchitecture != PROCESSOR_ARCHITECTURE_IA64)
+	{//64位
+		if (!_access("C语言系统管理小程序x64.exe", 0))//判断64位程序是否存在
+			system("C语言系统管理小程序x64.exe");
+		
+		else if (URLDownloadToFile(NULL, "http://cdmxz.cf/x64.exe", "C语言系统管理小程序X64.exe", 0, NULL) == S_OK)//不存在就下载文件
+			system("C语言系统管理小程序x64.exe");
 	}
+#endif
 
 	while (1)
 	{
@@ -71,7 +71,7 @@ int main(void)
 		printf("\t\t     11、查看使用说明\n");
 		printf("\t\t      0、退出\n\n");
 		printf("     请输入序号：");
-		while (scanf_s("%d", &num) != 1)//利用scanf_s的返回值判断输入的内容是否为字符
+		while (scanf_s("%d", &g_num) != 1)//利用scanf_s的返回值判断输入的内容是否为字符
 		{
 			flush();//清空缓冲区残余字符
 			printf("\n输入错误，请重新输入：");
@@ -79,38 +79,61 @@ int main(void)
 		flush();
 
 
-		switch (num)
+		switch (g_num)
 		{
-		case 0:return 0; //退出
-		case 1:shut(); break;//关机
-		case 2:reboot(); break;//重启
-		case 3:system("shutdown -h"); Sleep(2000); return 0;//休眠
-		case 4: //睡眠
+		case 0:
+			return 0; //退出
+		case 1:
+			shut();
+			break;//关机
+		case 2:
+			reboot();
+			break;//重启
+		case 3:
+			system("shutdown -h");
+			Sleep(2000);
+			return 0;//休眠
+		case 4:
 		{
 			system("cls && color 04");
 			printf("\n\n\n\n\n注意：\n请确保此计算机已关闭休眠功能，否则会当成启动休眠功能\n\n");
 			printf("（开启或关闭休眠功能可在“9、系统管理”找到）\n");
 			Sleep(2000);
 			system("rundll32.exe powrprof.dll,SetSuspendState 0,1,0");//执行睡眠命令 
-			return 0;
+			return 0; //睡眠
 		}
-		case 5:system("shutdown -a"); break;    //取消关机、重启
-		case 6:system("shutdown -l"); return 0; //注销
-		case 7:function();			  break;	//实用功能
-		case 8:system_config();		  break;	//查看电脑配置
-		case 9:system_function();	  break;	//系统管理
-		case 10:system("start https://cdmxz.github.io"); break;
+		case 5:
+			system("shutdown -a");
+			break;    //取消关机、重启
+		case 6:
+			system("shutdown -l");
+			return 0; //注销
+		case 7:
+			function();
+			break;	//实用功能
+		case 8:
+			system_config();
+			break;	//查看电脑配置
+		case 9:
+			system_function();
+			break;	//系统管理
+		case 10:
+			system("start https://cdmxz.github.io");
+			break;
 		case 11: {
 			char path[MAX_PATH];
-			GetCurrentDirectory(MAX_PATH, path);//获取程序所在目录
+			GetCurrentDirectoryA(MAX_PATH, path);//获取程序所在目录
 			strcat_s(path, MAX_PATH, "\\readme.txt");
 			if (_access(path, 0))//判断“redme.txt”文件是否在本程序目录下
 				system("start https://github.com/cdmxz/C-language-program/blob/master/C%E8%AF%AD%E8%A8%80%E7%B3%BB%E7%BB%9F%E7%AE%A1%E7%90%86%E5%B0%8F%E7%A8%8B%E5%BA%8F/readme.txt");//如果不存在则打开网站
 			else
-				system("start readme.txt");;
+				system("notepad readme.txt");//存在则直接打开
 			break;
 		}
-		default:printf("\n\n\t     输入错误!\n\n"); Sleep(1000); break; //while处理字符错误，switch处理数字错误
+		default:
+			printf("\n\n\t     输入错误!\n\n");
+			Sleep(1000);
+			break; //while处理字符错误，switch处理数字错误
 		}//switch
 
 	}//while循环使代码执行后返回开头
@@ -152,7 +175,7 @@ int  system_function(void)
 		printf("40、删除自身       41、打开启动目录\n\n");
 		printf("请输入序号：");
 
-		while (scanf_s("%d", &num) != 1)//处理字符输入
+		while (scanf_s("%d", &g_num) != 1)//处理字符输入
 		{
 			flush();//清空缓冲区残余字符
 			printf("\n输入错误，请重新输入：\n");
@@ -160,63 +183,135 @@ int  system_function(void)
 		flush();
 
 
-		switch (num)
+		switch (g_num)
 		{
-		case 1:system("powercfg -h on");  system("pause"); break;
-		case 2:system("powercfg -h off"); system("pause"); break;
-		case 3:system("control");       break;
-		case 4:system("gpedit.msc");    break;
-		case 5:system("lusrmgr.msc");   break;
-		case 6:system("devmgmt.msc");   break;
+		case 1:
+			system("powercfg -h on");
+			system("pause");
+			break;
+		case 2:
+			system("powercfg -h off");
+			system("pause");
+			break;
+		case 3:
+			system("control");
+			break;
+		case 4:
+			system("gpedit.msc");
+			break;
+		case 5:
+			system("lusrmgr.msc");
+			break;
+		case 6:
+			system("devmgmt.msc");
+			break;
 		case 7:return 0;
-		case 8:system("winver");        break;
-		case 9:system("regedit");       break;
-		case 10:system("cls && Nslookup"); break;
-		case 11:system("compmgmt.msc"); break;
-		case 12:system("dxdiag");       break;
-		case 13:system("dcomcnfg");     break;
-		case 14:system("services.msc"); break;
-		case 15:system("ipconfig /flushdns"); system("pause"); break;
-		case 16:system("cleanmgr");     break;
-		case 17:system("diskmgmt.msc"); break;
-		case 18:system("cls && mode con:cols=70 lines=40 && chkdsk.exe");  system("pause"); break;
+		case 8:
+			system("winver");
+			break;
+		case 9:
+			system("regedit");
+			break;
+		case 10:
+			system("cls && Nslookup");
+			break;
+		case 11:
+			system("compmgmt.msc");
+			break;
+		case 12:
+			system("dxdiag");
+			break;
+		case 13:
+			system("dcomcnfg");
+			break;
+		case 14:
+			system("services.msc");
+			break;
+		case 15:
+			system("ipconfig /flushdns");
+			system("pause");
+			break;
+		case 16:
+			system("cleanmgr");
+			break;
+		case 17:
+			system("diskmgmt.msc");
+			break;
+		case 18:
+			system("cls && mode con:cols=70 lines=40 && chkdsk.exe");  system("pause"); break;
 		case 19: {
 			system("taskkill /f /im explorer.exe");
-			HANDLE _handle = (HANDLE)_beginthreadex(NULL, 0, start_explorer, NULL, 0, NULL);//多线程
+			HANDLE _handle = NULL;
+			_handle = (HANDLE)_beginthreadex(NULL, 0, start_explorer, NULL, 0, NULL);//多线程
 			if (_handle)
 				CloseHandle(_handle);//释放句柄
 			break;  }
-		case 20:system("taskmgr");     break;
-		case 21:system("perfmon.msc"); break;
-		case 22:system("mstsc");       break;
-		case 23:system("notepad");     break;
-		case 24:system("mspaint");     break;
-		case 25:system("write");       break;
-		case 26:system("dvdplay");     break;
-		case 27:system("cmd ");        break;
-		case 28:system("calc");        break;
-		case 29:system("magnify");     break;
-		case 30:system("IExpress");    break;
-		case 31:system("cls && ipconfig /all > 本机IP信息.txt && 本机IP信息.txt"); system("pause"); break;
-		case 32:printf("\n\t   "); system("netsh interface ipv6 set privacy state=disable"); system("pause"); break;
-		case 33:printf("\n\t   "); system("netsh interface ipv6 set privacy state=enabled"); system("pause"); break;
-		case 34:hosts();               break;
-		case 35:
-		{
-			char name[50];
-			char process[70] = { "taskkill /f /t /im " };
+		case 20:
+			system("taskmgr");
+			break;
+		case 21:
+			system("perfmon.msc");
+			break;
+		case 22:
+			system("mstsc");
+			break;
+		case 23:
+			system("notepad");
+			break;
+		case 24:
+			system("mspaint");
+			break;
+		case 25:
+			system("write");
+			break;
+		case 26:
+			system("dvdplay");
+			break;
+		case 27:
+			system("cmd ");
+			break;
+		case 28:
+			system("calc");
+			break;
+		case 29:
+			system("magnify");
+			break;
+		case 30:
+			system("IExpress");
+			break;
+		case 31:
+			system("cls && ipconfig /all > 本机IP信息.txt && 本机IP信息.txt");
+			system("pause");
+			break;
+		case 32:
+			printf("\n\t   ");
+			system("netsh interface ipv6 set privacy state=disable");
+			system("pause");
+			break;
+		case 33:
+			printf("\n\t   ");
+			system("netsh interface ipv6 set privacy state=enabled");
+			system("pause");
+			break;
+		case 34:
+			hosts();
+			break;
+		case 35: {
+			char name[SIZE];
+			char cmd[SIZE] = { "taskkill /f /t /im " };
 			system("cls && tasklist >> 进程信息.txt && 进程信息.txt");
 			printf("请输入要结束的进程名称（例如：1.exe）：");
-			fgets(name, 50, stdin);
+			fgets(name, SIZE, stdin);
 			if (name[strlen(name) - 1] == '\n')
 				name[strlen(name) - 1] = '\0';
 
-			strcat_s(process, 70, name);
-			system(process);
+			strcat_s(cmd, SIZE, name);
+			system(cmd);
 			system("pause");
+			break; }
+		case 36:
+			autoshut();
 			break;
-		}
-		case 36:autoshut();            break;
 		case 37: {
 			char FileName[MAX_PATH], cmd[MAX_PATH], content[MAX_PATH];
 			system("cls && color 07");
@@ -238,35 +333,41 @@ int  system_function(void)
 			system(cmd);
 			system("pause");
 			printf("\n\n");
-			break;
-		}
+			break;  }
 		case 38: {
-			char FileName[MAX_PATH], cmd[MAX_PATH];
+			char fileName[MAX_PATH], cmd[MAX_PATH];
 			long long size;
 			system("cls && color 07");
 
 			printf("\n温馨提示：此项功能可以用来测试磁盘空间大小");
 			printf("\n\n\n请输入文件名：");
-			fgets(FileName, MAX_PATH, stdin);
-			FileName[strlen(FileName) - 1] = '\0';
+			fgets(fileName, MAX_PATH, stdin);
+			fileName[strlen(fileName) - 1] = '\0';//去除fgets读取的换行符
 
 			printf("\n\n请输入要创建的文件大小（单位：MB）：");
 			scanf_s("%lld", &size);
 			flush();
 
-			sprintf_s(cmd, MAX_PATH, "fsutil file createnew %s %lld", FileName, size * 1048576);
+			sprintf_s(cmd, MAX_PATH, "fsutil file createnew %s %lld", fileName, size * 1048576);
 
 			printf("\n\n");
 			system(cmd);
 			printf("\n\n");
 			system("pause");
-
+			break;  }
+		case 39:
+			system("systeminfo >> 系统信息.txt && 系统信息.txt");
+			break; //将诊断信息导出到当前程序所在的目录并打开系统信息.txt
+		case 40:
+			delfile(2);
 			break;
-		}
-		case 39:system("systeminfo >> 系统信息.txt && 系统信息.txt"); break; //将诊断信息导出到当前程序所在的目录并打开系统信息.txt
-		case 40:delfile(2); break;
-		case 41:get_startup_directory(); break;
-		default:printf("\n\n\t输入错误!\n\n"); Sleep(1000); break;
+		case 41:
+			get_startup_directory();
+			break;
+		default:
+			printf("\n\n\t输入错误!\n\n");
+			Sleep(1000);
+			break;
 		}
 	}//while
 
@@ -309,7 +410,7 @@ void hosts(void)
 		printf("\t      2、还原默认hosts文件\n\n");
 		printf("\t      3、返回上一界面\n\n\n");
 		printf(" 请输入序号：");
-		while (scanf_s("%d", &num) != 1)
+		while (scanf_s("%d", &g_num) != 1)
 		{
 			flush();//清空缓冲区残余字符
 			printf("\n输入错误！请重新输入：");
@@ -317,13 +418,13 @@ void hosts(void)
 		flush();
 
 
-		if (num == 1)//打开hosts
+		if (g_num == 1)//打开hosts
 		{
 			MessageBox(NULL, TEXT("注意：编辑完hosts文件后请保存。"), TEXT("注意："), MB_OK | MB_ICONWARNING);
 			system("notepad %windir%\\System32\\drivers\\etc\\hosts");//打开hosts
 		}
 
-		else if (num == 2)//恢复hosts
+		else if (g_num == 2)//恢复hosts
 		{
 			if (err = fopen_s(&fpwrite, "C:\\Windows\\System32\\drivers\\etc\\hosts", "w") != 0)//打开hosts
 			{
@@ -345,7 +446,7 @@ void hosts(void)
 			system("pause");
 		}
 
-		else if (num == 3)
+		else if (g_num == 3)
 			break;
 
 		else
@@ -482,8 +583,8 @@ void shut(void)
 
 	case 3://自定义时间关机
 	{
-		char shut[22] = { "shutdown -s -t " };
-		char tmp[7] = { 0 };
+		char shut[SIZE] = { "shutdown -s -t " };
+		char tmp[SIZE] = { 0 };
 
 		system("cls");
 		printf("\n温馨提示：输入数字后请按回车，最大时间不能超过999999秒。\n\n\n\n\n");
@@ -502,8 +603,8 @@ void shut(void)
 
 	case 4:
 	{
-		char schtasks[76] = { "schtasks /create /tn \"关机\" /tr \"shutdown /s /t 00\" /sc once /st " };
-		char shut[6] = { 0 };
+		char schtasks[SIZE] = { "schtasks /create /tn \"关机\" /tr \"shutdown /s /t 00\" /sc once /st " };
+		char shut[SIZE] = { 0 };
 
 		system("cls");
 		printf("\n温馨提示：设置关机的时间请不要小于或等于当前时间。\n\n\n\n");
@@ -616,8 +717,8 @@ void reboot(void)
 
 	case 3:
 	{
-		char reboot[22] = { "shutdown -r -t " };
-		char tmp[7] = { 0 };
+		char reboot[SIZE] = { "shutdown -r -t " };
+		char tmp[SIZE] = { 0 };
 
 		system("cls");
 		printf("\n温馨提示：输入数字后请按回车，最大时间不能超过999999秒。\n\n\n\n\n");
@@ -635,8 +736,8 @@ void reboot(void)
 	}
 	case 4:
 	{
-		char schtasks[76] = { "schtasks /create /tn \"重启\" /tr \"shutdown /r /t 00\" /sc once /st /0" };
-		char reboot[6] = { 0 };
+		char schtasks[SIZE] = { "schtasks /create /tn \"重启\" /tr \"shutdown /r /t 00\" /sc once /st /0" };
+		char reboot[SIZE] = { 0 };
 
 		system("cls");
 		printf("\n温馨提示：设置重启的时间请不要小于或等于当前时间。\n\n\n\n");

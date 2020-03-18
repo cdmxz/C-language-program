@@ -8,12 +8,13 @@
 
 
 #define PAI 3.14
+#define SIZE 100
 
 void Encrypt_or_decrypt(void);    //加密或解密
 void enc_dec_file(char* source, char* dest);//加密或解密文件内容
 int warning(void);                //当路径中有相同文件是提示是否覆盖
 
-						  //计算器
+
 int  cal(void);	     //计算器
 void oper(void);     //四则运算
 void square(void);   //开方计算
@@ -182,7 +183,7 @@ void Encrypt_or_decrypt(void)
 
 			strcpy_s(temp_filename, MAX_PATH, filename);
 
-			len = strlen(temp_filename) - 1;     //获取数组长度
+			len = (unsigned)strlen(temp_filename) - 1;     //获取数组长度
 			for (j = len; j > (len - 3); j--)//删除“.fh”后缀名
 				if (temp_filename[j] == 'h' || temp_filename[j] == 'f' || temp_filename[j] == '.')
 					temp_filename[j] = '\0';
@@ -221,8 +222,13 @@ void Encrypt_or_decrypt(void)
 					printf("\n\n加密后的密文是：%s\n\n", filename);
 				continue;
 			}
-			fputs(filename, fpwrite);//将加密后的内容写入文件
-			fclose(fpwrite);
+
+			if (fpwrite)
+			{
+				fputs(filename, fpwrite);//将加密后的内容写入文件
+				fclose(fpwrite);
+			}
+
 			printf("\n\n请打开本程序目录中的“加密后的密文.txt”查看\n\n");
 			system("start 加密后的密文.txt");
 			system("pause");
@@ -249,9 +255,12 @@ void Encrypt_or_decrypt(void)
 				continue;
 			}
 
-			fputs(filename, fpwrite);//将解密后的内容写入文件
-			fclose(fpwrite);
+			if (fpwrite)
+			{
+				fputs(filename, fpwrite);//将解密后的内容写入文件
+				fclose(fpwrite);
 
+			}
 			printf("\n\n请打开本程序目录中的“解密后的明文.txt”查看\n\n");
 			system("start 解密后的明文.txt");
 			system("pause");
@@ -265,21 +274,25 @@ void Encrypt_or_decrypt(void)
 				system("pause");
 				continue;
 			}
-			fputs("使用方法：\n"
-				"1.文件名称输入方式：\n"
-				"1、直接用鼠标把文件拖拽到程序窗口即可\n"
-				"2、在输入文件名称窗口中直接输入文件路径（如：C://1.txt）\n"
-				"3、在输入文件名称窗口中直接输入文件名称（如：1.txt）\n"
-				"4、注意：使用第3种方式需要把本程序和待加密/待解密文件放到同一文件夹内。\n\n"
-				"2.本程序理论上支持所有文件格式，但实际还待验证。\n\n"
-				"3.注意事项（请仔细阅读以下内容）：\n"
-				"1、加密或解密文件只会对文件内容进行加密或解密，不会对文件名称进行加密或解密。\n"
-				"2、加密后的文件如需更改文件名请保留原后缀名“.fh”。（列如：把“1.txt.fh“ 改名为 “2.txt.fh”）。\n"
-				"3、加密后的文件请不要更改其内容，否则解密后文件不能恢复原样！\n"
-				"4、待加密文件名称（包括路径、标点、后缀名等）请在200字以内，待解密文件名称（包括路径、标点、后缀名等）请在205字以内。\n"
-				"5、本软件只适合娱乐。\n"
-				"6、注意：禁止使用本软件加密重要文件！禁止使用本软件干违法犯罪的事！禁止使用本软件搞恶作剧！您使用本软件造成的任何后果均不由原作者承担！", fpwrite);
-			fclose(fpwrite);
+
+			if (fpwrite)
+			{
+				fputs("使用方法：\n"
+					"1.文件名称输入方式：\n"
+					"1、直接用鼠标把文件拖拽到程序窗口即可\n"
+					"2、在输入文件名称窗口中直接输入文件路径（如：C://1.txt）\n"
+					"3、在输入文件名称窗口中直接输入文件名称（如：1.txt）\n"
+					"4、注意：使用第3种方式需要把本程序和待加密/待解密文件放到同一文件夹内。\n\n"
+					"2.本程序理论上支持所有文件格式，但实际还待验证。\n\n"
+					"3.注意事项（请仔细阅读以下内容）：\n"
+					"1、加密或解密文件只会对文件内容进行加密或解密，不会对文件名称进行加密或解密。\n"
+					"2、加密后的文件如需更改文件名请保留原后缀名“.fh”。（列如：把“1.txt.fh“ 改名为 “2.txt.fh”）。\n"
+					"3、加密后的文件请不要更改其内容，否则解密后文件不能恢复原样！\n"
+					"4、待加密文件名称（包括路径、标点、后缀名等）请在200字以内，待解密文件名称（包括路径、标点、后缀名等）请在205字以内。\n"
+					"5、本软件只适合娱乐。\n"
+					"6、注意：禁止使用本软件加密重要文件！禁止使用本软件干违法犯罪的事！禁止使用本软件搞恶作剧！您使用本软件造成的任何后果均不由原作者承担！", fpwrite);
+				fclose(fpwrite);
+			}
 			system("start 使用说明.txt");
 		}
 		else
@@ -359,20 +372,26 @@ void enc_dec_file(char* source, char* dest)
 		exit(EXIT_FAILURE);
 	}
 
-	while ((len = fread(buffer, sizeof(char), (size_t)fileSize, fpRead)) > 0)//复制文件
+
+	if (fpWrite)
 	{
-		for (i = 0; i <= fileSize; i++)
-			buffer[i] = ~buffer[i];//对读取到内存的内容进行加密或解密
-
-		if (fwrite(buffer, sizeof(char), len, fpWrite) < len)
+		while ((len = fread(buffer, sizeof(char), (size_t)fileSize, fpRead)) > 0)//复制文件
 		{
-			MessageBox(NULL, TEXT("目标磁盘空间不足，请释放空间后重试！"), TEXT("错误"), MB_OK | MB_ICONERROR);
-			exit(EXIT_FAILURE);
-		}
-	}
+			for (i = 0; i <= fileSize; i++)
+				buffer[i] = ~buffer[i];//对读取到内存的内容进行加密或解密
 
-	fclose(fpRead);
-	fclose(fpWrite);
+
+			if (fwrite(buffer, sizeof(char), strlen(buffer) + 1, fpWrite) < len)
+			{
+				MessageBox(NULL, TEXT("目标磁盘空间不足，请释放空间后重试！"), TEXT("错误"), MB_OK | MB_ICONERROR);
+				exit(EXIT_FAILURE);
+			}
+
+		}
+
+		fclose(fpRead);
+		fclose(fpWrite);
+	}
 	free(buffer);
 	buffer = NULL;
 }
@@ -524,7 +543,7 @@ void dec(void)
 	{
 		system("title 十进制转二进制 && cls");
 		long long temp, dec = 0;
-		int count[256] = { 0 };
+		int count[MAX_PATH] = { 0 };
 		int bin;
 
 		printf("\t\t\t输入0返回\n\n\n");
@@ -817,7 +836,7 @@ int addstart(void)
 	HKEY hKey;
 	char* regPath = { "Software\\Microsoft\\Windows\\CurrentVersion\\Run" }; //注册表启动项路径
 	char path[MAX_PATH] = { 0 };//需要添加自启动的软件的路径
-	char name[31] = { 0 };//注册表子项名称
+	char name[SIZE] = { 0 };//注册表子项名称
 
 	printf("\t    输入000返回上一界面\n\n");
 	printf("请输入需要添加自启动的软件的路径\n（例如：H:\\test\\test.exe）\n ：");
@@ -829,7 +848,7 @@ int addstart(void)
 
 
 	printf("\n\n请输入添加到注册表的键值项名称\n\n（需要在15个字符内。\n  可以使用字符、数字、代表符、空格，\n  但不能使用“\\”）\n\n ：");
-	fgets(name, 31, stdin);//输入名称
+	fgets(name, SIZE, stdin);//输入名称
 	fgets_n(name);
 
 	//打开注册表启动项 
@@ -839,7 +858,7 @@ int addstart(void)
 		return -1;
 	}
 	//添加一个子Key,并设置值
-	if (RegSetValueEx(hKey, name, 0, REG_SZ, (BYTE*)path, strlen(path)) != ERROR_SUCCESS)
+	if (RegSetValueEx(hKey, name, 0, REG_SZ, (BYTE*)path, MAX_PATH) != ERROR_SUCCESS)
 	{
 		RegCloseKey(hKey);//关闭注册表
 		MessageBox(NULL, TEXT("添加失败！"), TEXT("ERROR"), MB_OK | MB_ICONERROR);
@@ -860,7 +879,7 @@ int addstart(void)
 int delstart(void)
 {
 	system("title 删除程序自启动 && cls");
-	char name[31] = { 0 }; //存储名称
+	char name[SIZE] = { 0 }; //存储名称
 	HKEY hKey;
 	char* regPath = { "Software\\Microsoft\\Windows\\CurrentVersion\\Run" }; //注册表启动项路径
 
@@ -902,8 +921,8 @@ int autoshut(void)
 	system("title 现在退出此程序或关闭电脑还来得及！");
 
 	int i;
-	char passbuffer[7] = { "115-56" };//密码
-	char temp[7] = { '\0' };
+	char passbuffer[SIZE] = { "115-56" };//密码
+	char temp[SIZE] = { '\0' };
 	char FileName[MAX_PATH];
 	/*HKEY hkey;
 	BYTE v = 1;*/
