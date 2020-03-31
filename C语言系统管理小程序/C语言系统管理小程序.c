@@ -36,25 +36,25 @@ errno_t err;
 
 int main(void)
 {
-#ifndef _WIN64//当前编译位32位时才会编译#ifndef到#endif中的代码
-	char path[MAX_PATH];
-	char url[] = { "http://cdmxz.cf/x64.exe" };
-	DeleteUrlCacheEntry(url);//清除下载缓存
-
-	GetCurrentDirectoryA(MAX_PATH, path);//获取程序目录
-	strcat_s(path, MAX_PATH, "\\C语言系统管理小程序x64.exe");
-
-	SYSTEM_INFO si;
-	GetNativeSystemInfo(&si);//使用wimapi获取系统是32位还是64位
-	if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64 || si.wProcessorArchitecture != PROCESSOR_ARCHITECTURE_IA64)
-	{//64位
-		if (!_access(path, 0))//判断64位程序是否存在
-			system(path);
-
-		else if (URLDownloadToFile(NULL, url, path, 0, NULL) == S_OK)//不存在就下载文件
-			system(path);
-	}
-#endif
+	//#ifndef _WIN64//当前编译位32位时才会编译#ifndef到#endif中的代码
+	//	char path[MAX_PATH];
+	//	char url[] = { "http://cdmxz.cf/x64.exe" };
+	//	DeleteUrlCacheEntry(url);//清除下载缓存
+	//
+	//	GetCurrentDirectoryA(MAX_PATH, path);//获取程序目录
+	//	strcat_s(path, MAX_PATH, "\\C语言系统管理小程序x64.exe");
+	//
+	//	SYSTEM_INFO si;
+	//	GetNativeSystemInfo(&si);//使用wimapi获取系统是32位还是64位
+	//	if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64 || si.wProcessorArchitecture != PROCESSOR_ARCHITECTURE_IA64)
+	//	{//64位
+	//		if (!_access(path, 0))//判断64位程序是否存在
+	//			system(path);
+	//
+	//		else if (URLDownloadToFile(NULL, url, path, 0, NULL) == S_OK)//不存在就下载文件
+	//			system(path);
+	//	}
+	//#endif
 
 	while (1)
 	{
@@ -473,8 +473,13 @@ int system_config(void)
 
 	system("cls && mode con:cols=90 lines=30");
 
-
-	if (_access("system.dll", 0) == -1)
+	if (_access("获取硬件信息.exe", 0) != -1)
+	{
+		system("cls && mode con:cols=90 lines=35");
+		system("获取硬件信息.exe");
+		return 0;
+	}
+	else if (_access("system.dll", 0) == -1)
 	{
 		DeleteUrlCacheEntry(url_1);//清除下载缓存
 		DeleteUrlCacheEntry(url_2);//清除下载缓存
