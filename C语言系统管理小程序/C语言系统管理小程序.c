@@ -242,14 +242,12 @@ int  system_function(void)
 			system("diskmgmt.msc");
 			break;
 		case 18:
-			system("cls && mode con:cols=70 lines=40 && chkdsk.exe");  system("pause"); break;
-		case 19: {
-			system("taskkill /f /im explorer.exe");
-			HANDLE _handle = NULL;
-			_handle = (HANDLE)_beginthreadex(NULL, 0, start_explorer, NULL, 0, NULL);//多线程
-			if (_handle)
-				CloseHandle(_handle);//释放句柄
-			break;  }
+			system("cls && mode con:cols=70 lines=40 && chkdsk.exe"); 
+			system("pause"); 
+			break;
+		case 19: 
+			system("tskill explorer");
+			break;  
 		case 20:
 			system("taskmgr");
 			break;
@@ -317,21 +315,21 @@ int  system_function(void)
 			autoshut();
 			break;
 		case 37: {
-			char FileName[MAX_PATH], cmd[MAX_PATH], content[MAX_PATH];
+			char fileName[MAX_PATH], cmd[MAX_PATH], content[MAX_PATH];
 			system("cls && color 07");
 
 			printf("\n\n请输入文件名：");
-			fgets(FileName, MAX_PATH, stdin);
-			FileName[strlen(FileName) - 1] = '\0';
+			fgets(fileName, MAX_PATH, stdin);
+			fileName[strlen(fileName) - 1] = '\0';
 
 			printf("\n\n请输入内容（如果要创建空文件请直接回车）：");
 			fgets(content, MAX_PATH, stdin);
 			content[strlen(content) - 1] = '\0';
 
 			if (content[0] == '\0')
-				sprintf_s(cmd, MAX_PATH, "type nul>%s", FileName);
+				sprintf_s(cmd, MAX_PATH, "type nul>%s", fileName);
 			else
-				sprintf_s(cmd, MAX_PATH, "echo %s>%s", content, FileName);
+				sprintf_s(cmd, MAX_PATH, "echo %s>%s", content, fileName);
 
 			printf("\n\n");
 			system(cmd);
@@ -424,7 +422,7 @@ void hosts(void)
 
 		if (g_num == 1)//打开hosts
 		{
-			MessageBox(NULL, TEXT("注意：编辑完hosts文件后请保存。"), TEXT("注意："), MB_OK | MB_ICONWARNING);
+			MessageBox(NULL, L"注意：编辑完hosts文件后请保存。", L"注意：", MB_OK | MB_ICONWARNING);
 			system("notepad %windir%\\System32\\drivers\\etc\\hosts");//打开hosts
 		}
 
@@ -432,7 +430,7 @@ void hosts(void)
 		{
 			if (err = fopen_s(&fpwrite, "C:\\Windows\\System32\\drivers\\etc\\hosts", "w") != 0)//打开hosts
 			{
-				MessageBox(NULL, TEXT("创建hosts文件失败！请以管理员权限运行本软件！"), TEXT("Error"), MB_OK | MB_ICONERROR);
+				MessageBox(NULL, L"创建hosts文件失败！请以管理员权限运行本软件！", L"Error", MB_OK | MB_ICONERROR);
 				exit(EXIT_FAILURE);
 			}
 
@@ -467,9 +465,8 @@ void hosts(void)
 int system_config(void)
 {
 	int ch, i;
-	char url_2[] = { "http://cdmxz.cf/system.dll" };
-	char url_1[] = { "https://raw.githubusercontent.com/cdmxz/C-language-program/master/C%E8%AF%AD%E8%A8%80%E7%B3%BB%E7%BB%9F%E7%AE%A1%E7%90%86%E5%B0%8F%E7%A8%8B%E5%BA%8F/system.dll" };
-	char path[MAX_PATH];
+	wchar_t url_1[] = { L"https://raw.githubusercontent.com/cdmxz/C-language-program/master/C%E8%AF%AD%E8%A8%80%E7%B3%BB%E7%BB%9F%E7%AE%A1%E7%90%86%E5%B0%8F%E7%A8%8B%E5%BA%8F/system.dll" };
+	wchar_t path[MAX_PATH];
 
 	system("cls && mode con:cols=90 lines=30");
 
@@ -482,31 +479,27 @@ int system_config(void)
 	else if (_access("system.dll", 0) == -1)
 	{
 		DeleteUrlCacheEntry(url_1);//清除下载缓存
-		DeleteUrlCacheEntry(url_2);//清除下载缓存
 
-		GetCurrentDirectoryA(MAX_PATH, path);
-		strcat_s(path, MAX_PATH, "\\system.dll");
+		GetCurrentDirectory(MAX_PATH, path);
+		wcscat_s(path, MAX_PATH, L"\\system.dll");
 
-		i = MessageBox(NULL, TEXT("未找到“system.dll”，是否下载？"), TEXT("警告"), MB_YESNO | MB_ICONWARNING);
+		i = MessageBox(NULL, L"未找到“system.dll”，是否下载？", L"警告", MB_YESNO | MB_ICONWARNING);
 		if (i == IDNO)
 			return 1;
-		if (URLDownloadToFileA(NULL, url_1, path, 0, NULL) != S_OK)//下载文件
-		{//下载失败就切换另一个网址下载
-			if (URLDownloadToFileA(NULL, url_2, path, 0, NULL) != S_OK)
-			{
-				MessageBox(NULL, TEXT("下载失败，请重试！"), TEXT("错误"), MB_OK | MB_ICONERROR);
-				return 1;
-			}
+		if (URLDownloadToFile(NULL, url_1, path, 0, NULL) != S_OK)//下载文件
+		{
+			MessageBox(NULL, L"下载失败，请重试！", L"错误", MB_OK | MB_ICONERROR);
+			return 1;
 		}
 	}
-	if ((err = fopen_s(&fpread, "system.dll", "rb")) != 0)//打开DLL文件
+	if (fopen_s(&fpread, "system.dll", "rb") != 0)// 打开DLL文件
 	{
-		MessageBox(NULL, TEXT("文件打开错误！\n请检查本程序目录下是否有“system.dll”"), TEXT("Error"), MB_OK | MB_ICONERROR);
+		MessageBox(NULL, L"文件打开错误！\n请检查本程序目录下是否有“system.dll”", L"Error", MB_OK | MB_ICONERROR);
 		return 1;
 	}
-	if ((err = fopen_s(&fpwrite, "获取硬件信息.bat", "wb")) != 0)
+	if (fopen_s(&fpwrite, "获取硬件信息.bat", "wb") != 0)
 	{
-		MessageBox(NULL, TEXT("数据文件创建错误！\n请以管理员权限运行本软件！"), TEXT("Error"), MB_OK | MB_ICONERROR);
+		MessageBox(NULL, L"数据文件创建错误！\n请以管理员权限运行本软件！", L"Error", MB_OK | MB_ICONERROR);
 		return 1;
 	}
 
@@ -826,30 +819,28 @@ void  delfile(int mode)
 	}
 	else
 	{
-		char command[800], cmdpath[MAX_PATH], filepath[MAX_PATH];
+		wchar_t command[MAX_PATH] = { 0 }, cmdpath[MAX_PATH], filepath[MAX_PATH];
 
 		if (!_access("system.dll", 0))
 		{
 			if (remove("system.dll"))
 			{
-				MessageBox(NULL, TEXT("删除失败！"), TEXT("错误"), MB_OK | MB_ICONERROR);
+				MessageBox(NULL, L"删除失败！", L"错误", MB_OK | MB_ICONERROR);
 				exit(1);
 			}
 		}
 
-		//获得程序自身路径和cmd路径，并删除system.dll
-		if ((GetModuleFileName(NULL, filepath, MAX_PATH) != 0) && (GetEnvironmentVariable("COMSPEC", cmdpath, MAX_PATH) != 0))
+		// 获得程序自身路径和cmd路径，并删除system.dll
+		if ((GetModuleFileName(NULL, filepath, MAX_PATH) != 0) && (GetEnvironmentVariable(L"COMSPEC", cmdpath, MAX_PATH) != 0))
 		{
-			sprintf_s(command, 800, "\"%s\" /c del /q \"%s\" > nul", cmdpath, filepath);//命令参数
-			SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);//提高自身进程的优先级
+			wprintf_s(command, sizeof(command), L"\"%s\" /c del /q \"%s\" > nul", cmdpath, filepath);// 命令参数
+			SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);				// 提高自身进程的优先级
 			SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
-			SHChangeNotify(SHCNE_DELETE, SHCNF_PATH, filepath, NULL);//通知资源浏览器,本程序已经被删除
-			ShellExecute(NULL, "open", cmdpath, command, NULL, SW_HIDE);
+			SHChangeNotify(SHCNE_DELETE, SHCNF_PATH, filepath, NULL);					// 通知资源浏览器,本程序已经被删除
+			ShellExecute(NULL, L"open", cmdpath, command, NULL, SW_HIDE);
 		}
 		else
-			MessageBox(NULL, TEXT("删除失败！"), TEXT("错误"), MB_OK | MB_ICONERROR);
-
-
+			MessageBox(NULL, L"删除失败！", L"错误", MB_OK | MB_ICONERROR);
 		exit(0);
 	}
 }
@@ -857,9 +848,9 @@ void  delfile(int mode)
 
 void get_startup_directory(void)
 {
-	char path[MAX_PATH], cmd[MAX_PATH + 10];
+	char path[MAX_PATH], cmd[MAX_PATH * 2];
 
-	if (GetEnvironmentVariable("APPDATA", path, MAX_PATH) == 0) //获取用户文件夹
+	if (GetEnvironmentVariableA("APPDATA", path, MAX_PATH) == 0) //获取用户文件夹
 		strcpy_s(path, MAX_PATH, "C:\\Users\\Administrator\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup");//获取失败则默认路径
 	else
 		strcat_s(path, MAX_PATH, "\\Microsoft\\Windows\\Start Menu\\Programs\\Startup");
