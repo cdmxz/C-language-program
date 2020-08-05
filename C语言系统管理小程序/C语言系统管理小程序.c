@@ -13,8 +13,6 @@
 #pragma comment(lib, "urlmon.lib")
 #pragma comment(lib, "wininet.lib")
 
-
-
 void  shut(void);       //关机
 void  reboot(void);     //重启
 int   system_config(void);  //查看电脑配置
@@ -25,12 +23,10 @@ void  function(void);   //实用功能
 void  delfile(int mode);    //删除文件
 int   autoshut(void);   //彩蛋
 void  get_startup_directory(void);//获取启动目录
-unsigned int __stdcall start_explorer(PVOID p);
 
 //定义全局变量
 int g_num;
 FILE* fpread, * fpwrite;
-errno_t err;
 
 #define SIZE 100
 
@@ -428,7 +424,7 @@ void hosts(void)
 
 		else if (g_num == 2)//恢复hosts
 		{
-			if (err = fopen_s(&fpwrite, "C:\\Windows\\System32\\drivers\\etc\\hosts", "w") != 0)//打开hosts
+			if (fopen_s(&fpwrite, "C:\\Windows\\System32\\drivers\\etc\\hosts", "w") != 0)//打开hosts
 			{
 				MessageBox(NULL, L"创建hosts文件失败！请以管理员权限运行本软件！", L"Error", MB_OK | MB_ICONERROR);
 				exit(EXIT_FAILURE);
@@ -857,10 +853,4 @@ void get_startup_directory(void)
 
 	sprintf_s(cmd, MAX_PATH + 10, "explorer \"%s\"", path);
 	system(cmd);
-}
-
-unsigned int __stdcall start_explorer(PVOID p)
-{
-	system("C:\\Windows\\explorer.exe");
-	return 0;
 }

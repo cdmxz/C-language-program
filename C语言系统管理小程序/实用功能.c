@@ -15,7 +15,6 @@ void Encrypt_or_decrypt(void);    //加密或解密
 int enc_dec_file(char* source, char* dest);//加密或解密文件内容
 int over_write(char* sourceFileName, char* destFileName); //当路径中有相同文件是提示是否覆盖
 
-
 int  cal(void);	     //计算器
 void oper(void);     //四则运算
 void square(void);   //开方计算
@@ -35,6 +34,10 @@ int addstart(void);
 int delstart(void);
 //去掉fgets的换行符
 void fgets_n(char* n);
+//倒计时
+void countdown(void);
+// 播放mp3
+int play_mp3(void);
 
 
 //实用功能
@@ -46,11 +49,13 @@ void function(void)
 	{
 		system("mode con:cols=45 lines=20 && title 实用功能 && cls");
 
-		printf("\n\n\n\t      1、多功能计算器\n\n");
+		printf("\n\n\t      1、多功能计算器\n\n");
 		printf("\t      2、加密文件内容\n\n");
 		printf("\t      3、添加软件自启动\n\n");
 		printf("\t      4、删除软件自启动\n\n");
-		printf("\t      5、返回主界面\n\n\n");
+		printf("\t      5、倒计时\n\n");
+		printf("\t      6、播放MP3\n\n");
+		printf("\t      7、返回主界面\n\n");
 		printf("    请输入：");
 
 		while (scanf_s("%d", &num) != 1)
@@ -73,6 +78,12 @@ void function(void)
 			delstart();
 
 		else if (num == 5)
+			countdown();
+
+		else if (num == 6)
+			play_mp3();
+
+		else if (num == 7)
 			break;
 
 		else
@@ -650,8 +661,7 @@ void bin(void)
 //ascii码转字符
 void ascii(void)
 {
-	int ascii, i = 0;
-	char ch;
+	int ascii;
 
 	while (1)
 	{
@@ -659,7 +669,7 @@ void ascii(void)
 
 		printf("\n\n\n");
 		printf("（注意：1-31和127都是控制字符）\n\n");
-		printf("请输入需要转换成字符的ASCII码：");
+		printf("请输入需要转换成字符的ASCII码(输入0返回）：");
 		while (scanf_s("%d", &ascii) != 1)
 		{
 			printf("\n输入错误！请重新输入：");
@@ -672,29 +682,6 @@ void ascii(void)
 
 		printf("\n\n\n\n      ASCII码 %d 对应的字符为：%c\n\n", ascii, ascii);
 		printf("（如显示“□”则为控制字符）\n\n");
-
-		i++;
-
-		if (i == 3)
-		{
-			printf("\n\n\t       是否返回上一界面？（Y/N）");
-			scanf_s("%c", &ch, 1);
-			rewind(stdin);
-			if (ch == 'y' || ch == 'Y')
-				break;
-			else if (ch == 'n' || ch == 'N')
-			{
-				i = 0;
-				continue;
-			}
-			else
-			{
-				i = 0;
-				printf("\n\n\t\t\t输入错误！");
-				Sleep(1000);
-				continue;
-			}
-		}
 		system("pause");
 	}
 }
@@ -878,7 +865,7 @@ int addstart(void)
 	HKEY hKey;
 	wchar_t* regPath = { L"Software\\Microsoft\\Windows\\CurrentVersion\\Run" }; //注册表启动项路径
 	wchar_t W_name[SIZE];
-	wchar_t W_path[SIZE];
+	wchar_t W_path[MAX_PATH];
 	char path[MAX_PATH] = { 0 };//需要添加自启动的软件的路径
 	char name[SIZE] = { 0 };//注册表子项名称
 
@@ -974,6 +961,36 @@ void fgets_n(char* n)
 }
 
 
+//倒计时
+void countdown(void)
+{
+	double min;
+	system("mode con cols=40 lines=8");
+
+	printf("请输入多少分(输入0返回）：");
+	while (scanf_s("%lf", &min) != 1)
+	{
+		printf("输入错误！请重新输入：");
+		rewind(stdin);
+	}
+	rewind(stdin);
+
+	//隐藏程序运行窗口
+	HWND hwnd = FindWindow(L"ConsoleWindowClass", NULL);
+	if (hwnd)
+		ShowWindow(hwnd, SW_HIDE);
+
+	min *= 60;	 // 分化秒
+	min *= 1000; // 秒化毫秒 
+	min -= 10000;
+	Sleep((DWORD)min);
+	MessageBox(NULL, TEXT("倒计时还有10秒钟！"), TEXT("提示"), MB_OK);
+
+	if (hwnd)
+		ShowWindow(hwnd, SW_SHOW);
+}
+
+
 //彩蛋
 int autoshut(void)
 {
@@ -1001,7 +1018,7 @@ int autoshut(void)
 		"那就去网站https://cdmxz.github.io寻找密码吧！您只有5分钟了，加油！\n什么？你没连网？网站登不上去？那就不能怪我了，"
 		"只能怪您自己运气太差咯！哈哈~\nPS：本网站和密码不收取一分钱费用，如果要钱，那就是骗子，请勿上当！" };
 
-	multibyte_to_widebyte(wanging_zero, str);
+	multibyte_to_widebyte(warning_one, str);
 	i = MessageBox(NULL, str, L"警告！", MB_YESNO | MB_ICONWARNING);
 	if (i == IDNO)
 		return 0;

@@ -21,6 +21,9 @@
     <ClCompile Include="C语言系统管理小程序.c">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="MP3.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="C语言系统管理小程序.rc">
