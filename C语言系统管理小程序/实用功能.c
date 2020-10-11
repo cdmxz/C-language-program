@@ -250,15 +250,15 @@ void encrypt_or_decrypt(void)
 
             j = (unsigned)strlen(filename);
             for (i = 0; i <= j; i++)//加密字符串
-                filename[i] += 115;
+                filename[i] = ~filename[i];
 
             //写入文件
             if ((err = fopen_s(&fpwrite, "加密后的密文.txt", "w")) != 0)
             {
-                i = MessageBox(NULL, L"创建文件失败！\n是否直接输入（可能会导致显示不完全）？", L"Error", MB_YESNO | MB_ICONERROR);
-                if (i == IDNO)
-                    continue;
-                else if (i == IDYES)
+                //i = MessageBox(NULL, L"创建文件失败！\n是否直接输入（可能会导致显示不完全）？", L"Error", MB_YESNO | MB_ICONERROR);
+                //if (i == IDNO)
+                //    continue;
+                //else if (i == IDYES)
                     printf("\n\n加密后的密文是：%s\n\n", filename);
                 continue;
             }
@@ -269,8 +269,9 @@ void encrypt_or_decrypt(void)
                 fclose(fpwrite);
             }
 
+            printf("\n\n加密后的密文是：%s\n\n", filename);
             printf("\n\n请打开本程序目录中的“加密后的密文.txt”查看\n\n");
-            system("start 加密后的密文.txt");
+          //  system("start 加密后的密文.txt");
             system("pause");
         }
         else if (num == 4)//解密密文
@@ -284,15 +285,15 @@ void encrypt_or_decrypt(void)
 
             j = (unsigned)strlen(filename);
             for (i = 0; i <= j; i++)//加密字符串
-                filename[i] -= 115;
+                filename[i] = ~filename[i];
 
             //写入文件
-            if ((err = fopen_s(&fpwrite, "解密后的明文.txt", "w")) != 0)
+            if (fopen_s(&fpwrite, "解密后的明文.txt", "w") != 0)
             {
-                i = MessageBox(NULL, L"创建文件失败！\n是否直接显示（可能会导致显示不完全）？", L"Error", MB_YESNO | MB_ICONERROR);
+               /* i = MessageBox(NULL, L"创建文件失败！\n是否直接显示（可能会导致显示不完全）？", L"Error", MB_YESNO | MB_ICONERROR);
                 if (i == IDNO)
                     continue;
-                else if (i == IDYES)
+                else if (i == IDYES)*/
                     printf("\n\n解密后的明文是：%s\n\n", filename);
                 continue;
             }
@@ -303,8 +304,9 @@ void encrypt_or_decrypt(void)
                 fclose(fpwrite);
 
             }
+            printf("\n\n解密后的明文是：%s\n\n", filename);
             printf("\n\n请打开本程序目录中的“解密后的明文.txt”查看\n\n");
-            system("start 解密后的明文.txt");
+          //  system("start 解密后的明文.txt");
             system("pause");
         }
         else if (num == 5)//使用说明
