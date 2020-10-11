@@ -115,8 +115,11 @@ int play_mp3(void)
 		//获取音乐文件长度
 		mciSendString(TEXT("status music length"), T_temp, SIZE, 0);
 		Llength = wcstol(T_temp, NULL, 10);//使用宽字符版本
-		i = Lcurrent = 0;//重置当前播放的位置                         
-		mciSendString(TEXT("setaudio music volume to 600"), 0, 0, 0);//设定默认音量为600   
+		i = Lcurrent = 0;//重置当前播放的位置 
+
+		wsprintf(T_temp, L"setaudio music volume to %d", Lvolume);
+		mciSendString(T_temp, 0, 0, 0);//调节音量大小
+		//mciSendString(TEXT("setaudio music volume to 600"), 0, 0, 0);//设定默认音量为600   
 		mciSendString(TEXT("play music"), 0, 0, 0);//播放
 
 		system("mode con cols=120 lines=10");
@@ -375,6 +378,7 @@ int OpenMusic(const TCHAR* musicName, const char* defaultErr)
 	char* name = NULL;
 
 	wsprintf(T_open, L"open \"%s\" alias music", musicName);// 打开文件
+
 	if (mciSendString(T_open, 0, 0, 0) != 0) // 打开文件
 	{
 		name = TCHARToChar(musicName);
