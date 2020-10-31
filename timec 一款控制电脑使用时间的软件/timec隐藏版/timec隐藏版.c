@@ -5,21 +5,61 @@
 #include <time.h>
 #include <direct.h>
 #include <io.h>
+#include <locale.h>
 
 #define SIZE 100
 #define MAX_SIZE 600
+#define TIME_PERIOD_SIZE 15
 
-int  GetTime(void);         //比较当前时间和电脑能启动的时间
-int  WriteTime(void);       //写入电脑关机时间和下次能启动时间
-void ShutDown(void);	    //执行关机命令
-int  Read_File(int* RunTime, int* BreakTime, char* Time_Period, char* Date, int N);//从配置文件读取电脑能运行的时间和休息时间
-void Shutdown_Tip(const long sec);//当距离关机时间还有3分钟时输出关机提示
-void FirstStart(char* cmd);	//第一次启动自定义参数
-void Flush(void);		    //清除缓冲区
-void Fgets_n(char* str);    //清除fgets读取的'\n'
-void Initialize(char* str1, char* str2, int n);//初始化数组
-void CopyFileToStartFolder(wchar_t* source);//添加自启动模式2复制到启动目录
+const char APP_NAME[] = "timec";
+const char RUN_TIME_NAME[] = "电脑开机后能运行的时间";
+const char BREAK_TIME_NAME[] = "电脑关机后强制休息的时间";
+const char TIME_PERIOD_NAME[] = "电脑每天能运行的时间段";
+const char DATE_NAME[] = "电脑每个月能运行的日期";
+const char SHUTDOWN_TIME_NAME[] = "电脑在休息时间内启动时关机时间";
+const char ESTIMATED_TIME_NAME[] = "预计关机时间";
+const char REG_PARAMETER[] = "reg";
 
+// 判断电脑在当前时刻是否能启动
+int  can_start(void);          
+// 获取电脑关机时间
+long long get_shutdown_time(char* shutdown_time, size_t size, long long add_sec);
+// 将str1按照指定字符分割，并将分割后的每个字符串和str2比较是否相同
+int find_str(char* str1, const char ch, char* str2);
+// 输入数字
+int input_number(char* dest_str, size_t dest_str_size, int max_value);
+// 关机
+void shut_down(time_t sec, char* tip);
+// 获取ch在str的下标
+int get_index(char* str, char ch);
+// 删除str中的指定字符
+void del_char(char* str, char ch);
+// 当距离关机时间还有3分钟时输出关机提示
+void shutdown_tip(const long sec);
+// 第一次启动时设置参数
+void first_start(char* cmd);	
+// 清除缓冲区
+void Flush(void);		  
+// 清除fgets读取的'\n'
+void fgets_n(char* str);   
+// 隐藏窗口
+void hide_window(int mode);
+// 初始化（配置文件等）路径
+void init_path(char* cmd, size_t size);
+// 分割字符串（字符串只能有一个分割符：1,2）
+void split_str(char* str, const char ch, char* out_str1, size_t out_str1_size, char* out_str2, size_t out_str2_size);
+// 判断按ch分割的字符串（1,2,3）的每个日期是否正确（大于0小于32）
+int judge_date(const char* date_str, size_t date_str_size, char sep);
+// 添加自启动
+void add_start(void);
+// 读配置文件
+void read_file(int* shutdown_sec, int* run_time, int* break_time, char* time_period, size_t time_period_size, char* date, size_t date_size, time_t* estimated_time);
+// 写配置文件
+void write_file(char* cmd, char* run_time, char* break_time, char* time_period, char* date, char* shutdown_time);
+// 写入预计关机时间（当前时间+能运行的时间）
+void write_estimated_time(time_t estimated_time);
+// 多字节字符转宽字节字符
+wchar_t* str_to_wcs(char* source_str);
 /***************************************************************************************************************
 *    当前时间为2019年11月23日11:20，我设定电脑运行40分钟就要休息10分钟后才能运行，并且设置只能在每天的10:00-   *
 *    13:00运行。                                                                                               *
@@ -30,503 +70,318 @@ void CopyFileToStartFolder(wchar_t* source);//添加自启动模式2复制到启动目录
 ****************************************************************************************************************/
 
 
-char time_dat_path[SIZE];   //数据文件路径
-char config_file_path[SIZE];//配置文件路径
-char folder_path[SIZE];     //文件夹路径
-char dest_path[SIZE];      //注册表自启动路径以及复制的目标文件的路径
-wchar_t W_dest_path[SIZE]; //注册表自启动路径以及复制的目标文件的路径宽字符版
-FILE* fp;
-errno_t err;
-
+long long lastSleepTime = 0;
+char config_file_path[MAX_PATH];//配置文件路径
+char folder_path[MAX_PATH];     //文件夹路径
+char dest_path[MAX_PATH];      //注册表自启动路径以及复制的目标文件的路径
+char start_parameter[MAX_PATH];// 启动参数
 
 int main(int argc, char* argv[])
 {
-	size_t PtNumOfCharConverted;
-	wchar_t W_folder_path[SIZE];        //储存文件夹路径宽字符版
-	char cmd[SIZE];			            //储存cmd命令
-	wchar_t W_SystemRoot[SIZE];         //储存系统盘盘符宽字符版
-	char C_SystemRoot[SIZE] = { '\0' }; //储存系统盘盘符
+	int ret_val;
+	char cmd[MAX_PATH];
+	init_path(cmd, sizeof(cmd));
+	// 隐藏运行窗口
+	hide_window(HIDE_WINDOW);
 
+	if (argc == 2)
+	{
+		strcpy_s(start_parameter, sizeof(start_parameter), argv[1]);
+		if (strcmp(argv[1], "-reset") == 0)//重新设置配置文件
+			first_start(cmd);
+	}
+	else if (_access(config_file_path, 0)) // 判断配置文件是否存在                                   
+		first_start(cmd);                // 不存在则调用第一次启动设置
 
-	if (GetEnvironmentVariable(L"SYSTEMDRIVE", W_SystemRoot, SIZE) == 0) //获取系统盘盘符
-		wcscpy_s(W_SystemRoot, SIZE, L"C:");                             //获取失败则默认为C:
-	wcstombs_s(&PtNumOfCharConverted, C_SystemRoot, SIZE, W_SystemRoot, SIZE); //将wchar_t类型转为char类型
+	ret_val = can_start();
+	if (ret_val == 0)
+		shut_down(-1, NULL);
+	return 0;
+}
 
-
-	sprintf_s(folder_path, SIZE, "%s\\ProgramData\\timec", C_SystemRoot); //文件夹路径
-	mbstowcs_s(&PtNumOfCharConverted, W_folder_path, SIZE, folder_path, SIZE);//将char类型转为wchar_t类型
-
-	sprintf_s(config_file_path, SIZE, "%s\\Users\\Public\\Timec_config.txt", C_SystemRoot);//配置文件路径
-	sprintf_s(time_dat_path, SIZE, "%s\\time.dat", folder_path);          //数据文件路径
-	sprintf_s(dest_path, SIZE, "%s\\timec隐藏版.exe", folder_path);       //注册表自启动路径以及复制的目标文件的路径
-	swprintf_s(W_dest_path, SIZE, L"%s\\timec隐藏版.exe", W_folder_path);  //注册表自启动路径以及复制的目标文件的路径宽字符版
-	sprintf_s(cmd, SIZE, "attrib +s +h \"%s\" ", folder_path);            //给目录添加系统隐藏属性
-
-
-	//隐藏程序运行窗口
+// 隐藏程序的运行窗口
+void hide_window(int mode)
+{
 	HWND hwnd = FindWindow(TEXT("ConsoleWindowClass"), NULL);
 	if (hwnd)
-		ShowWindow(hwnd, SW_HIDE);
+		ShowWindow(hwnd, mode);
+}
 
-	if (argc == 2)                 //判断是否添加了“-reset”参数启动timec隐藏版
-	{
-		if (strcmp(argv[1], "-reset") == 0)
-			FirstStart(cmd);
-	}
-	else if (_access(time_dat_path, 0)) //判断数据文件“time.dat”是否存在                                   
-		FirstStart(cmd);       //不存在则调用第一次启动设置
-
-	GetTime();
-	WriteTime();
-	ShutDown();
-	return 0;
+// 初始化（配置文件等）路径
+void init_path(char* cmd, size_t size)
+{
+	char system_data[MAX_PATH]; //储存系统盘盘符
+	if (GetEnvironmentVariableA("ALLUSERSPROFILE", system_data, MAX_PATH) == 0) //获取"C:\ProgramData"路径
+		strcpy_s(system_data, MAX_PATH, "C:\\ProgramData");                             //获取失败则默认为C:
+	sprintf_s(folder_path, MAX_PATH, "%s\\timec", system_data); //文件夹路径
+	sprintf_s(config_file_path, MAX_PATH, "%s\\Timec_config.txt", folder_path);//配置文件路径
+	sprintf_s(dest_path, MAX_PATH, "%s\\timec隐藏版.exe", folder_path);       //注册表自启动路径以及复制的目标文件的路径
+	sprintf_s(cmd, size, "attrib +s +h \"%s\" ", folder_path);            //给目录添加系统隐藏属性
 }
 
 
 /*****************************************************************************
 					判断在当前时间内电脑是否能启动
 *****************************************************************************/
-int GetTime(void)
+int can_start(void)
 {
-	unsigned i, j;
-	long long ShutDownTime;
-	int  temp, sec;
-	char temp_time[SIZE] = { 0 }, behind_time[15] = { 0 };
-	char command[100];
-	char last_time[SIZE];        //电脑下次能运行的时间的秒数（电脑上次关闭后的时间加上休息时间）
-	char time_now[SIZE];         //储存当前时间
-	char shut_down_time[SIZE];   //储存电脑关机时间
-	char date[100] = { 0 };	     //储存电脑能运行的日期
-	char time_period[15] = { 0 };//储存电脑能运行的时间段
-	char C_tip[100] = { 0 };     //当电脑提前启动时输出关机提示
-	wchar_t W_tip[100] = { 0 };  //当电脑提前启动时输出关机提示
-
-	const wchar_t ShutdownKey[] = { L"SYSTEM\\CurrentControlSet\\Control\\Windows" };//系统启动项路径
-	size_t pReturnValue;
-	HKEY hkey;
-	FILETIME file_time;
-	DWORD dwsize;
-	SYSTEMTIME system_time;
-	ULARGE_INTEGER ui;
-	time_t current_time, shutdown_time = 0;
+	int  shutdown_sec, break_time, run_time;
+	char temp_time[SIZE] = { 0 }, front_time[TIME_PERIOD_SIZE], back_time[TIME_PERIOD_SIZE] = { 0 };
+	char date[SIZE] = { 0 };	     //储存电脑能运行的日期
+	char time_period[TIME_PERIOD_SIZE] = { 0 };//储存电脑能运行的时间段
+	char tip[SIZE] = { 0 };     //当电脑提前启动时输出关机提示
+	time_t current_time, shutdown_time, estimated_time;
 
 	//获取1970-01-01到当前的秒数
 	struct tm  tm_current_time;
 	time(&current_time);
 	localtime_s(&tm_current_time, &current_time);//将获取的秒数转换为本地时间
 
+	read_file(&shutdown_sec, &run_time, &break_time, time_period, sizeof(time_period), date, sizeof(date), &estimated_time);//获取电脑能运行的时间段和日期
 
-	sec = Read_File(NULL, NULL, time_period, date, 34);//获取电脑能运行的时间段和日期
-
+	//判断当前日期是否能运行
+	if (strcmp(date, "00") != 0)
+	{
+		sprintf_s(tip, sizeof(tip), "请在每个月的“%s”号运行本电脑！\n本电脑即将在%d秒内关机！", date, shutdown_sec);
+		sprintf_s(temp_time, sizeof(temp_time), "%d", tm_current_time.tm_mday);
+		if (find_str(date, ',', temp_time) == -1)// 如果在数组中不能找到当前日期，则关机
+			shut_down(shutdown_sec, tip);
+	}
 
 	//判断当前时间是否在时间段内
 	if (strcmp(time_period, "00:00-00:00") != 0)//判断是否不限时间段启动
 	{
-		sprintf_s(C_tip, 100, "请在每天的“%s”内运行本电脑！\n本电脑即将在%d秒内关机！", time_period, sec);
-		mbstowcs_s(&pReturnValue, W_tip, SIZE, C_tip, SIZE);//将char转为wchar_t
+		sprintf_s(tip, SIZE, "请在每天的“%s”内运行本电脑！\n本电脑即将在%d秒内关机！", time_period, shutdown_sec);
+		// 清除“-”和“:”
+		//del_char(time_period, '-');
+		del_char(time_period, ':');
 
-		for (i = 0; i < 15; i++)//清除'-'和':'
+		//index = get_index(time_period, ':');
+		// 分割成前时刻和后时刻（分割前：time_period[TIME_PERIOD_SIZE]={"08:00-16:00"}，分割后：前时刻：behind_time[TIME_PERIOD_SIZE]={"08:00"}、后时刻：time_period[TIME_PERIOD_SIZE]={"16:00"}）
+		split_str(time_period, '-', front_time, sizeof(front_time), back_time, sizeof(back_time));
+		/*for (i = 0; i < strlen(time_period); i++, index++)
 		{
-			if (time_period[i] == '-' || time_period[i] == ':')
+			behind_time[i] = time_period[index];
+			if (index == (strlen(time_period) - 1))
+				time_period[index] = '\0';
+		}*/
+
+		sprintf_s(temp_time, TIME_PERIOD_SIZE, "%d%d", tm_current_time.tm_hour, tm_current_time.tm_min);//将当前时间写到数组 
+		if (strcmp(temp_time, front_time) < 0 || strcmp(temp_time, back_time) > 0)     //判断当前时刻是否在能运行的时间段内
+			shut_down(shutdown_sec, tip);
+		memset(temp_time, 0, sizeof(temp_time));//清空数组
+	}
+	// 获取上次关机时间
+	shutdown_time = get_shutdown_time(NULL, 0, 0);
+
+	//判断当前时间是否小于预计关机时间
+	if (current_time < estimated_time)
+	{
+		// 如果是自启动（不是手动点击启动）
+		if (strcmp(start_parameter, REG_PARAMETER) == 0)
+		{
+			// 如果因为不可抗拒因素关机，或着玩累了电脑手动关机，然后一段时间后又开机的话，
+			// 就判断当前时间 - 关机时间 < 休息时间。
+			// 如果条件成立，就补上关机的那段时间。
+			// 比如：（设定休息时间break_time为7分钟）预计12:00关机，但我11:40玩累了关机，然后11:45又开机继续玩，
+			// 那么中间休息了5分钟（未超过设定的休息时间break_time），开机后的实际关机时间就要为12:05分。
+			if (current_time - shutdown_time < (time_t)break_time * 60)
 			{
-				for (j = i; j < 14; j++)
-					time_period[j] = time_period[j + 1];
+				// 补上关机的那段时间，并重新设定关机
+				write_estimated_time(estimated_time + (current_time - shutdown_time));// 预计关机时间 +（当前时间-实际关机时间）
+				shut_down(estimated_time + (current_time - shutdown_time) - current_time, NULL);// 预计关机时间 + （当前时间 - 实际关机时间）- 实际关机时间
 			}
+			else
+				// 比如：（设定休息时间break_time为7分钟）预计12:00关机，但我11:40玩累了关机，然后11:50又开机继续玩，
+				// 那么中间休息了10分钟（超过了设定的休息时间break_time），那么设定run_time分钟后关机。
+				return 0;
 		}
-
-		for (i = 4; i < strlen(time_period); i++)//分割成前时刻和后时刻（分割前：time_period[15]={"08:00-16:00"}，分割后：前时刻：behind_time[15]={"08:00"}、后时刻：time_period[15]={"16:00"}）
-		{
-			behind_time[i - 4] = time_period[i];
-			if (i == (strlen(time_period) - 1))
-				time_period[4] = '\0';
-		}
-
-
-		sprintf_s(temp_time, 15, "%d%d", tm_current_time.tm_hour, tm_current_time.tm_min);//将当前时间写到数组
-
-
-		if (strcmp(temp_time, time_period) > 0 && strcmp(temp_time, behind_time) < 0)     //判断当前时刻是否在能运行的时间段内
-			;
 		else
-		{
-			system("shutdown -a");
-			sprintf_s(command, 100, "shutdown -f -s -t %d", sec);
-			system(command);//执行关机命令
-			MessageBox(NULL, (W_tip), TEXT("警告："), MB_OK | MB_ICONWARNING);
-			system(command);//执行关机命令
-			exit(EXIT_SUCCESS);
-		}
-		Initialize(temp_time, NULL, 1);//清空数组
+			shut_down(estimated_time - current_time, NULL);// 预计关机时间 + （当前时间 - 实际关机时间）- 实际关机时间
+		//write_estimated_time(current_time + (estimated_time - shutdown_time));
+		//shut_down(estimated_time - current_time, NULL);
+
+		////判断当前时间与休眠时间是否相差小于5分钟
+		//if ((current_time - lastSleepTime) <= 300 && lastSleepTime != 0)
+		//{	//如果当前时间与休眠时间相差小于5分钟就算出当前时间距离下次关机时间还有多少分
+		//	system("shutdown -a");
+		//	sprintf_s(command, SIZE, "shutdown -f -s -t %lld", (ShutDownTime - current_time));//把时间差写到数组
+		//	system(command); //执行关机命令
+		//	shutdown_tip((long)(ShutDownTime - current_time));
+		//}
 	}
-
-	Initialize(C_tip, NULL, 1);
-	memset(W_tip, 0, SIZE);
-
-
-	if (strcmp(date, "00") != 0)//判断当前日期是否能运行
+	// 当前时间 大于 预计关机时间 并且小于 预计关机时间 + 休息时间
+	if (current_time >= estimated_time && current_time < (estimated_time + (time_t)break_time * 60))
 	{
-		sprintf_s(C_tip, 100, "请在每个月的“%s”号运行本电脑！\n本电脑即将在%d秒内关机！", date, sec);
-		mbstowcs_s(&pReturnValue, W_tip, SIZE, C_tip, SIZE);//将char转为wchar_t
-
-		for (i = 0; i <= 100; i++)
-		{
-			Initialize(temp_time, NULL, 1);
-			if (i == 100)
-			{
-				system("shutdown -a");
-				sprintf_s(command, 100, "shutdown -f -s -t %d", sec);
-				system(command);//执行关机命令
-				MessageBox(NULL, (W_tip), TEXT("警告："), MB_OK | MB_ICONWARNING);
-				system(command);//执行关机命令
-				exit(EXIT_SUCCESS);
-			}
-
-			if (i == 0)
-			{
-				temp_time[0] = date[0];
-				temp_time[1] = date[1];
-			}
-			else if (date[i] == ',')
-			{
-				temp_time[0] = date[i - 2];
-				temp_time[1] = date[i - 1];
-			}
-			sscanf_s(temp_time, "%d", &temp);
-
-			if (temp == tm_current_time.tm_mday)
-				break;
-		}
+		shut_down(shutdown_sec, "当前为休息时间，电脑即将关机！");
 	}
-
-	Initialize(C_tip, NULL, 1);
-	memset(W_tip, 0, SIZE);
-
-
-	if ((err = fopen_s(&fp, time_dat_path, "r")) != 0)//打开“time.dat”
-		return 1;                 //如果打开失败就返回主函数执行关机命令
-
-	if (!_filelength(_fileno(fp)))//判断文件是否为空
-	{
-		fclose(fp);
-		return 1;
-	}
-
-
-	for (i = 0; i < 4; i++)       //从“time.dat”读取内容
-	{
-		if (i == 1)               //从“time.dat”读取第一行，电脑关机的时间的秒数
-			fgets(shut_down_time, SIZE, fp);
-		else if (i == 2)          //“time.dat”读取第二行，电脑下次能运行的时间的秒数
-			fgets(last_time, SIZE, fp);
-		else if (i == 3)          //从“time.dat”读取第三行，提示
-			fgets(C_tip, 100, fp);
-	}
-	fclose(fp);
-
-	//清除fgets读取的换行符
-	Fgets_n(shut_down_time);
-	Fgets_n(last_time);
-
-	//清除从文件中读取的中文字符
-	strcpy_s(shut_down_time, strlen(shut_down_time) + 1, shut_down_time + 22);
-	strcpy_s(last_time, strlen(last_time) + 1, last_time + 28);
-
-	//将1970-01-01 00:00:00到当前时间的秒数写入到数组
-	sprintf_s(time_now, SIZE, "%lld", current_time);
-
-
-	if (strcmp(shut_down_time, time_now) > 0)//判断当前时间是否小于电脑关机时间
-	{
-		if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, ShutdownKey, 0, KEY_READ, &hkey) != ERROR_SUCCESS)//获取电脑上次关机时间
-			ShutDown();
-
-		if (RegQueryValueEx(hkey, TEXT("ShutdownTime"), NULL, NULL, NULL, &dwsize) == ERROR_SUCCESS && sizeof(file_time) == dwsize)
-		{
-			RegQueryValueEx(hkey, TEXT("ShutdownTime"), NULL, NULL, (LPBYTE)&file_time, &dwsize);
-
-			FileTimeToSystemTime(&file_time, &system_time);
-			ui.LowPart = file_time.dwLowDateTime;
-			ui.HighPart = file_time.dwHighDateTime;
-			shutdown_time = (LONGLONG)(ui.QuadPart - 116444736000000000) / 10000000;
-		}
-		RegCloseKey(hkey);
-
-		sscanf_s(shut_down_time, "%lld", &ShutDownTime);//将数组里的关机时间写到变量
-
-		/*
-		struct tm tm_Shut_Down_Time;
-		localtime_s(&tm_Shut_Down_Time, &shutdown_time);
-		printf("关机时间：%4d-%02d-%02d %02d:%02d:%02d\n", tm_Shut_Down_Time.tm_year + 1900, tm_Shut_Down_Time.tm_mon + 1, tm_Shut_Down_Time.tm_mday, tm_Shut_Down_Time.tm_hour, tm_Shut_Down_Time.tm_min, tm_Shut_Down_Time.tm_sec);
-		*/
-		if ((current_time - shutdown_time) < 0)  //检查读取的关机时间是否错误
-			ShutDown();
-		else
-		{
-			if ((current_time - shutdown_time) > 300)//判断当前时间与关机时间是否相差大于5分钟
-				return 0;                            //如果当前时间与关机时间相差大于5分钟就重新写入关机时间并执行关机
-		}
-
-		//如果当前时间与关机时间相差小于5分钟就算出当前时间距离下次关机时间还有多少分
-		system("shutdown -a");
-		sprintf_s(command, 100, "shutdown -f -s -t %lld", (ShutDownTime - current_time));//把时间差写到数组
-		system(command);                         //执行关机命令
-		Shutdown_Tip((long)(ShutDownTime - current_time));
-	}
-	else if (strcmp(last_time, time_now) > 0)//如果当前时间大于电脑关机时间，就判断当前时间是否小于电脑能启动的时间
-	{
-		//如果当前时间小于电脑能启动的时间，就执行关机命令并且输出关机提示
-		system("shutdown -a");
-		sprintf_s(command, 100, "shutdown -f -s -t %d", sec);
-		system(command);//执行关机命令
-		MessageBox(NULL, (W_tip), TEXT("警告！"), MB_OK | MB_ICONWARNING);//弹出关机提示
-		system(command);//执行关机命令
-		exit(EXIT_SUCCESS);
-	}
+	write_estimated_time(current_time + (time_t)run_time * 60);
 	return 0;
 }
 
-
-/*****************************************************************************
-写入电脑关闭后休息的时间，即电脑下次能启动时间。
-例如：电脑能运行40分钟休息10分钟。
-也就是说电脑下次能启动的时间要在当前时间上加上40分能运行时间和10分钟休息时间。
-******************************************************************************/
-int WriteTime(void)
+// 分割字符串（字符串只能有一个分割符：1,2）
+void split_str(char* str, const char ch, char* out_str1, size_t out_str1_size, char* out_str2, size_t out_str2_size)
 {
-	time_t last_time;
-	struct tm p;
-	int min, hour, day, mon, year, run_time, break_time;
-	long sec = 0;
+	if (!str || !ch || !out_str1 || !out_str2)
+		return;
 
-	//获取电脑能运行的时间和休息时间
-	Read_File(&run_time, &break_time, NULL, NULL, 12);
+	memset(out_str1, 0, out_str1_size);
+	memset(out_str2, 0, out_str2_size);
 
-
-	if ((err = fopen_s(&fp, time_dat_path, "w")) != 0)//打开数据文件
-		return 1;
-
-
-	time(&last_time);                      //获取当前时间的秒数
-	localtime_s(&p, &last_time);
-	min = p.tm_min + run_time + break_time;//在当前分钟的基础上加上xx分钟的运行时间和xx分钟休息时间
-	hour = p.tm_hour;
-	day = p.tm_mday;
-	mon = p.tm_mon + 1;
-	year = p.tm_year + 1900;
-
-	while (min >= 60)
-	{
-		min -= 60;
-		hour++;
-	}
-
-	while (hour >= 24)
-	{
-		hour -= 24;
-		day++;
-	}
-	//判断月份
-	if (mon == 1 || mon == 3 || mon == 5 || mon == 7 || mon == 8 || mon == 10 || mon == 12)//判断当前月份是否为大月
-	{
-		while (day > 31)
-		{
-			day -= 31;
-			mon++;
-		}
-	}
-
-	if (mon == 4 || mon == 6 || mon == 9 || mon == 11)//判断当前月份是否为小月
-	{
-		while (day > 30)
-		{
-			day -= 30;
-			mon++;
-		}
-	}
-
-	if (mon == 2)
-	{
-		if (year % 400 == 0 || (year % 4 == 0 && year % 100 != 0))//判断当前年份是否为闰年
-		{
-			while (day > 29)
-			{
-				day -= 29;//闰年2月有29天
-				mon++;
-			}
-		}
-	}
-	else
-	{
-		while (day > 28)
-		{
-			day -= 28;//平年2月有28天
-			mon++;
-		}
-	}
-
-	while (mon > 12) //判断当前月份是否超过12月
-	{
-		mon -= 12;
-		year++;
-	}
-
-	run_time *= 60;
-	break_time *= 60;
-
-	sec = sec + (long)last_time + (long)run_time;
-	fprintf(fp, "电脑关机的时间的秒数：%ld\n", sec);//向文件写入电脑下次能运行时间的秒数
-	sec += (long)break_time;
-	fprintf(fp, "电脑下次能运行的时间的秒数：%ld\n", sec);
-	fprintf(fp, "当前为休息时间,下次此电脑允许启动时间为：%02d年%02d月%02d日%02d时%02d分后。    电脑即将关机！", year, mon, day, hour, min);//向文件写入提示信息
-	fclose(fp);
-	return 0;
+	char* p = str;
+	for (; *p != ch; p++, out_str1++)
+		*out_str1 = *p;
+	str = p = strchr(str, ch) + 1;
+	for (; *p != ch && *p != '\0'; p++, out_str2++)
+		*out_str2 = *p;
 }
 
+// 写入预计关机时间（当前时间+能运行的时间）
+void write_estimated_time(time_t estimated_time)
+{
+	char time[SIZE];
+	sprintf_s(time, sizeof(time), "%lld", estimated_time);
+	WritePrivateProfileStringA(APP_NAME, ESTIMATED_TIME_NAME, time, config_file_path);
+}
 
+// 将str1按照指定字符分割，并将分割后的每个字符串和str2比较是否相同
+int find_str(char* str1, const char ch, char* str2)
+{
+	char* p = NULL;
+	char* con_text = NULL;
+	// 分割字符串
+	p = (char*)strtok_s(str1, &ch, &con_text);
+	while (p != NULL)
+	{
+		if (strcmp(p, str2) == 0)
+			return 0;
+		p = (char*)strtok_s(NULL, &ch, &con_text);
+	}
+	return -1;
+}
+
+// 获取电脑关机时间
+long long get_shutdown_time(char* shutdown_time, size_t size, long long add_sec)
+{
+	const wchar_t shutdown_key[] = { L"SYSTEM\\CurrentControlSet\\Control\\Windows" };//系统启动项路径
+	HKEY hkey;
+	FILETIME file_time;
+	DWORD dwsize;
+	SYSTEMTIME system_time;
+	ULARGE_INTEGER ui;
+	long long time = 0;
+
+	if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, shutdown_key, 0, KEY_READ, &hkey) != ERROR_SUCCESS)//获取电脑上次关机时间
+		return -1;
+
+	if (RegQueryValueEx(hkey, TEXT("ShutdownTime"), NULL, NULL, NULL, &dwsize) != ERROR_SUCCESS || sizeof(file_time) != dwsize)
+		return -1;
+
+	RegQueryValueEx(hkey, TEXT("ShutdownTime"), NULL, NULL, (LPBYTE)&file_time, &dwsize);
+
+	FileTimeToSystemTime(&file_time, &system_time);
+	ui.LowPart = file_time.dwLowDateTime;
+	ui.HighPart = file_time.dwHighDateTime;
+	time = (LONGLONG)(ui.QuadPart - 116444736000000000) / 10000000;
+	RegCloseKey(hkey);
+
+	time += (add_sec > 0 ? add_sec : 0);
+	if (shutdown_time)
+		sprintf_s(shutdown_time, size, "%lld", time);
+	return time;
+}
+
+// 删除str中的指定字符
+void del_char(char* str, char ch)
+{
+	int i = 0, j;
+	int len = (int)strlen(str);
+	for (; i <= len; i++)
+	{
+		if (str[i] == ch)
+		{
+			for (j = i; j < len - 1; j++)
+				str[j] = str[j + 1];
+			str[j] = '\0';
+		}
+	}
+}
+
+// 获取ch在str的下标
+int get_index(char* str, char ch)
+{
+	char* p = str;
+	for (; *p != '\0'; p++)
+	{
+		if (*p == ch)
+			return (int)(p - str);
+	}
+	return -1;
+}
 
 /*****************************************************************************
 				 从配置文件读取电脑能运行的时间以及休息时间
 *****************************************************************************/
-int Read_File(int* RunTime, int* BreakTime, char* Time_Period, char* Date, int N)
+void read_file(int* shutdown_sec, int* run_time, int* break_time, char* time_period, size_t time_period_size, char* date, size_t date_size, time_t* estimated_time)
 {
-	int ch, sec = 10, i = 0, j = 0;
-	int run_time = 40;	         //默认能运行时间（单位：分）
-	int break_time = 10;         //默认休息时间（单位：分）
-	char config[100] = { 0 };    //储存从文件读取的参数
-	char time_period[15] = { 0 };//能运行的时间段
-	char date[100] = { 0 };      //电脑每个月能运行的日期
+	char temp[SIZE];
+	/*strcat_s(content, MAX_SIZE, "\n\n注意：\n"
+		"1、“电脑开机后能运行的时间”和“电脑关机后强制休息的时间”两项值的单位都为分，值范围5~999。\n"
+		"2、“电脑每天能运行的时间段”项值的格式为“xx:xx-xx:xx”，请不要输入中文标点（如：“：”）。\n"
+		"3、每一项末尾的分号是英文分号，更改内容请保留原格式。\n"
+		"4、如果出现程序不能正常运行，请在“timec自定义版”重新创建配置文件或添加“-reset”参数启动timec隐藏版。");*/
 
-
-	//先返回默认参数
-	if (N == 1)
-		*RunTime = run_time;
-	else if (N == 12)
-	{
-		*RunTime = run_time;
-		*BreakTime = break_time;
+	if (shutdown_sec)
+	{// 电脑在休息时间内启动时关机时间
+		GetPrivateProfileStringA(APP_NAME, SHUTDOWN_TIME_NAME, "30", temp, sizeof(temp), config_file_path);
+		sscanf_s(temp, "%d", shutdown_sec);
 	}
-	else if (N == 34)
-	{
-		strcpy_s(Time_Period, 15, "00:00-00:00");
-		strcpy_s(Date, 100, "00");
+	if (run_time)
+	{// 电脑能运行的时间
+		GetPrivateProfileStringA(APP_NAME, RUN_TIME_NAME, "40", temp, sizeof(temp), config_file_path);
+		sscanf_s(temp, "%d", run_time);
 	}
-
-
-	//从配置文件读取内容
-	if ((err = fopen_s(&fp, config_file_path, "r")) != 0)
-		return sec;
-
-
-	if ((ch = fgetc(fp)) == EOF)//判断文件是否为空
-	{
-		MessageBox(NULL, TEXT("“timec隐藏版”配置文件有误，\n请在“timec自定义版”重新设置配置文件，\n或添加“-reset”参数启动timec隐藏版。"), TEXT("错误"), MB_OK | MB_ICONERROR);
-		return sec;
+	if (break_time)
+	{// 电脑关机后强制休息的时间
+		GetPrivateProfileStringA(APP_NAME, BREAK_TIME_NAME, "10", temp, sizeof(temp), config_file_path);
+		sscanf_s(temp, "%d", break_time);
 	}
-
-
-	while ((ch = fgetc(fp)) != EOF)
+	if (time_period)// 电脑每天能运行的时间段
+		GetPrivateProfileStringA(APP_NAME, TIME_PERIOD_NAME, "00:00-00:00", time_period, (DWORD)time_period_size, config_file_path);
+	if (date)// 电脑每个月能运行的日期
+		GetPrivateProfileStringA(APP_NAME, DATE_NAME, "00", date, (DWORD)date_size, config_file_path);
+	if (estimated_time)// 预计关机时间（单位：秒）
 	{
-		if (ch == '=')        //判断ch是否为“=”
-		{
-			while ((ch = fgetc(fp)) != ';')//读取“=”到“;”内的参数
-			{
-				if (ch == ' ')//判断ch是否为空格
-				{
-					i = 0;
-					continue;//跳过此次循环，丢弃读取的空格
-				}
-				config[i] = ch;
-				i++;
-			}
-		}
-
-		if (ch == '\n')       //判断是否读到下一行
-		{
-			if (j == 0)       //判断是否读到第二行
-				sscanf_s(config, "%d", &run_time);   //把第一行的内容保存到run_time，第一行的内容是电脑能运行的时间
-			else if (j == 1)  //判断是否读到第三行
-				sscanf_s(config, "%d", &break_time); //把第二行的内容保存到break_time，第二行的内容是电脑关机后休息的时间	
-			else if (j == 2)  //判断是否读到第四行
-			{
-				if (strchr(config, '：') || strchr(config, '——'))
-					MessageBox(NULL, TEXT("检测到“timec隐藏版”配置文件有中文符号，\n请在“timec自定义版”中重新设置配置文件，\n或添加“-reset”参数启动timec隐藏版。"), TEXT("错误"), MB_OK | MB_ICONERROR);
-
-				for (i = 0; i < 15; i++)//电脑能运行的时间段
-					time_period[i] = config[i];
-			}
-			else if (j == 3)//判断是否读到第五行
-				strcpy_s(date, 100, config);//电脑每个月能运行的日期
-			else if (j == 4)
-			{
-				sscanf_s(config, "%d", &sec);
-				if (sec < 0 && sec > 60)
-					sec = 10;
-			}
-			else if (j == 5)
-				break;
-
-			j++;
-			i = 0;
-			Initialize(config, NULL, 1);//数组每次循环前清零
-		}
+		GetPrivateProfileStringA(APP_NAME, ESTIMATED_TIME_NAME, "-1", temp, sizeof(temp), config_file_path);
+		sscanf_s(temp, "%lld", estimated_time);
 	}
-
-	if (strchr(config, '，'))
-	{
-		MessageBox(NULL, TEXT("检测到“timec隐藏版”配置文件有中文符号，\n请在“timec自定义版”中重新设置配置文件，\n或添加“-reset”参数启动timec隐藏版。"), TEXT("错误"), MB_OK | MB_ICONERROR);
-		return sec;
-	}
-
-	//返回从配置文件读取到的内容
-	if (N == 1)
-		*RunTime = run_time;
-	else if (N == 12)
-	{
-		*RunTime = run_time;
-		*BreakTime = break_time;
-	}
-	else if (N == 34)
-	{
-		strcpy_s(Time_Period, 15, time_period);
-		strcpy_s(Date, 100, date);
-	}
-	return sec;
 }
-
 
 
 /*****************************************************************************
 							   第一次启动设置
 ******************************************************************************/
-void FirstStart(char* cmd)
+void first_start(char* cmd)
 {
 	//显示程序运行窗口
-	HWND hwnd = FindWindow(TEXT("ConsoleWindowClass"), NULL);
-	if (hwnd)
-		ShowWindow(hwnd, SW_SHOW);
-
+	hide_window(SW_SHOW);
 	system("title 第一次启动... && mode con cols=52 lines=17");
-
-	HKEY hkey;
 	char c;
 	unsigned i, j = 0;
-	int  front_hour, front_min, behind_hour, behind_min;
-	char config_content[MAX_SIZE] = { 0 };		//储存将要写入配置文件的内容               
-	wchar_t W_path[MAX_PATH];				    //储存timec隐藏版.exe的路径    
-	char temp_time_period[15], time_period[15]; //储存能运行的时间段
-	char run_time[5], break_time[5];	        //储存能运行的时间和休息时间
-	char date[100] = { 0 };						//储存电脑每个月能运行的日期
-	wchar_t* lpSubKey = { L"Software\\Microsoft\\Windows\\CurrentVersion\\Run" }; //系统启动项路径
+	int  front_hour, front_min, back_hour, back_min;
+	char  time_period_backup[TIME_PERIOD_SIZE], time_period[TIME_PERIOD_SIZE]; //储存能运行的时间段
+	char run_time[TIME_PERIOD_SIZE] = { 0 }, break_time[TIME_PERIOD_SIZE] = { 0 }, shutdown_sec[TIME_PERIOD_SIZE];	        //储存能运行的时间和休息时间
+	char date[SIZE] = { 0 };						//储存电脑每个月能运行的日期
 
 
-	for (i = 5; i > 0; i--)
+	/*for (i = 5; i > 0; i--)
 	{
 		printf("\t      timec隐藏版 第一次启动...\n\n\n\n\n\n\t\t    正在初始化...\n\n\n\n\n");
 		printf("温馨提示：请以管理员权限运行本软件，并退出杀毒软件。\n\n\n");
 		printf("\t\t\t%d", i);
 		Sleep(1000);
 		system("cls");
-	}
+	}*/
 
 	/***********************/
 begin://goto语句标签
@@ -538,90 +393,83 @@ begin://goto语句标签
 	printf("\n\n请输入电脑每天能运行的时间段（格式：xx:xx - xx:xx，请不要输入中文标点。\n温馨提示：输入00:00 - 00:00不限制运行时间段。）：");
 	while (1)
 	{
-		Initialize(temp_time_period, time_period, 2);
+		memset(time_period_backup, 0, sizeof(time_period_backup));
+		memset(time_period, 0, sizeof(time_period));
 
-		fgets(time_period, 15, stdin);
+		fgets(time_period, TIME_PERIOD_SIZE, stdin);
 		rewind(stdin);
-		Fgets_n(time_period);	//清除fgets读取的'\n'
+		fgets_n(time_period);	//清除fgets读取的'\n'
 
-		for (i = 0; i < 15; i++)//把time_period的内容复制到temp_time_period
-			temp_time_period[i] = time_period[i];
+		del_char(time_period, ' ');
+		//把time_period的内容复制到time_period_backup
+		strcpy_s(time_period_backup, sizeof(time_period_backup), time_period);
 
 		//判断输入的格式是否正确
-		if (strchr(date, '：') || strchr(date, '——'))
+		if (strlen(time_period) != 11 || time_period[5] != '-')
 		{
-			printf("\n请不要输入中文符号，请重新输入：");
+			printf("\n格式错误（例如：08:00 - 14:00），请重试：");
 			continue;
 		}
 
-		if (strlen(time_period) != 13 || time_period[6] != '-')//判断输入格式是xx:xx-xx:xx还是xx:xx - xx:xx
-		{
-			if (strlen(time_period) != 11 || time_period[5] != '-')
-			{
-				printf("\n格式错误（例如：08:00 - 14:00），请重试：");
-				continue;
-			}
-		}
-
-		for (i = 0; i < 15; i++)
+		for (i = 0; i < TIME_PERIOD_SIZE; i++)
 		{
 			if (time_period[i] == ':' || time_period[i] == '-')
 				time_period[i] = ' ';
 		}
 
-		sscanf_s(time_period, "%d %d %d %d", &front_hour, &front_min, &behind_hour, &behind_min);
+		sscanf_s(time_period, "%d %d %d %d", &front_hour, &front_min, &back_hour, &back_min);
 
 		//判断输入的时刻是否有误
-		if ((front_hour > 24 || front_hour < 0) || (behind_hour > 24 || behind_hour < 0) || (front_min > 60 || front_min < 0) || (behind_min > 60 || behind_min < 0))
+		if ((front_hour > 24 || front_hour < 0) || (back_hour > 24 || back_hour < 0) || (front_min > 60 || front_min < 0) || (back_min > 60 || back_min < 0))
 		{
 			printf("\n格式错误（例如：08:00 - 14:00），请重试：");
 			continue;
 		}
-		if (front_hour == 24 || behind_hour == 24)//判断两个时刻小时部分是否为24
+		if (front_hour == 24 || back_hour == 24)//判断两个时刻小时部分是否为24
 		{
-			if (front_hour == 24 && behind_hour == 24)//判断两个时刻小时部分是否都为24
+			if (front_hour == 24 && back_hour == 24)//判断两个时刻小时部分是否都为24
 			{
-				temp_time_period[1] = temp_time_period[0] = '0';
+				time_period_backup[1] = time_period_backup[0] = '0';
 				if (time_period[8] == '2' && time_period[9] == '4')
-					temp_time_period[9] = temp_time_period[8] = '0';
+					time_period_backup[9] = time_period_backup[8] = '0';
 				else
-					temp_time_period[7] = temp_time_period[6] = '0';
-				printf("\n格式错误，应输入为：%s。请重试：", temp_time_period);
+					time_period_backup[7] = time_period_backup[6] = '0';
+				printf("\n格式错误，应输入为：%s。请重试：", time_period_backup);
 			}
 			else if (front_hour == 24)//判断前时刻小时部分是否为24
 			{
-				temp_time_period[1] = temp_time_period[0] = '0';
-				printf("\n格式错误，应输入为：%s。请重试：", temp_time_period);
+				time_period_backup[1] = time_period_backup[0] = '0';
+				printf("\n格式错误，应输入为：%s。请重试：", time_period_backup);
 			}
-			else if (behind_hour == 24)//判断后时刻小时部分是否为24
+			else if (back_hour == 24)//判断后时刻小时部分是否为24
 			{
 				if (time_period[8] == '2' && time_period[9] == '4')
-					temp_time_period[9] = temp_time_period[8] = '0';
+					time_period_backup[9] = time_period_backup[8] = '0';
 				else
-					temp_time_period[7] = temp_time_period[6] = '0';
-				printf("\n格式错误，后时刻应输入为：%s。请重试：", temp_time_period);
+					time_period_backup[7] = time_period_backup[6] = '0';
+				printf("\n格式错误，后时刻应输入为：%s。请重试：", time_period_backup);
 			}
 			continue;
 		}
 
 		//判断输入是否为00:00 - 00:00
-		if (front_hour == 0 && behind_hour == 0 && front_min == 0 && behind_min == 0)
+		if (front_hour == 0 && back_hour == 0 && front_min == 0 && back_min == 0)
 			break;
 
 		//判断后时刻是否比前时刻大
-		if (front_hour > behind_hour)
+		if (front_hour > back_hour)
 		{
 			printf("\n前时刻要比后时刻小，请重试：");
 			continue;
 		}
-		else if (front_hour == behind_hour)
+		else if (front_hour == back_hour)
 		{
-			if (front_min > behind_min)
+			if (front_min > back_min)
 			{
 				printf("\n前时刻要比后时刻小。请重试：");
 				continue;
 			}
-			else if (front_min == behind_min)
+			else if (front_min == back_min)
 			{
 				printf("\n前时刻要比后时刻小，且不能相等。请重试：");
 				continue;
@@ -630,8 +478,8 @@ begin://goto语句标签
 
 		//判断前时刻与后时刻是否相差小于5分钟
 		front_hour = (front_hour * 3600) + (front_min * 60);
-		behind_hour = (behind_hour * 3600) + (behind_min * 60);
-		if ((behind_hour - front_hour) < 300)
+		back_hour = (back_hour * 3600) + (back_min * 60);
+		if ((back_hour - front_hour) < 300)
 		{
 			printf("\n前时刻与后时刻必须相差5分钟。请重试：");
 			continue;
@@ -643,17 +491,12 @@ begin://goto语句标签
 	printf("\n\n请输入电脑每个月能运行的日期（例如：05。\n温馨提示：如果要输入多个日期请用英文逗号分隔开，例如：1,5,10,25,30。\n输入00不限制运行日期。）：");
 	while (1)
 	{
-		Initialize(date, NULL, 1);
-		fgets(date, 100, stdin);
+		memset(date, 0, sizeof(date));
+		fgets(date, sizeof(date), stdin);
 		rewind(stdin);
-		Fgets_n(date);
+		fgets_n(date);
 
-		if (strchr(date, '，'))
-		{
-			printf("\n请不要输入中文符号，请重新输入：");
-			continue;
-		}
-		if (strlen(date) <= 1)
+		if (strlen(date) <= 1 || judge_date(date, sizeof(date), ','))
 		{
 			printf("\n格式错误，请重新输入（例如：01,05,10）：");
 			continue;
@@ -662,69 +505,25 @@ begin://goto语句标签
 	}
 
 	printf("\n\n请输入电脑每次能运行的时间\n（也就是电脑每次运行XX分钟后强制关机。单位：分钟）：");
-	while (1)
-	{
-		while (scanf_s("%d", &i) != 1)
-		{
-			printf("\n输入错误，请重试：");
-			Flush();
-		}
-		Flush();
-		if (i > 999)
-		{
-			printf("\n最大值不能超过999分，请重新输入：");
-			continue;
-		}
-		sprintf_s(run_time, 5, "%d", i);
-		break;
-	}
+	input_number(run_time, sizeof(run_time), 999);
 
 	printf("\n\n请输入电脑每次休息时间\n（也就是电脑每次强制关机后需要在XX分钟后才能使用。单位：分钟）：");
-	while (1)
-	{
-		while (scanf_s("%d", &i) != 1)
-		{
-			printf("\n输入错误，请重试：");
-			Flush();
-		}
-		Flush();
-		if (i > 999)
-		{
-			printf("\n最大值不能超过999分，请重新输入：");
-			continue;
-		}
-		sprintf_s(break_time, 5, "%d", i);
-		break;
-	}
+	input_number(break_time, sizeof(break_time), 999);
 
 	printf("\n\n请输入当电脑在能运行的时间段外或在休息时间内启动时，电脑关机时间\n（单位：秒。最大值60秒）：");
-	while (1)
-	{
-		while (scanf_s("%d", &i) != 1)
-		{
-			printf("\n输入错误，请重试：");
-			Flush();
-		}
-		Flush();
-		if (i > 60)
-		{
-			printf("\n最大值不能超过60秒，请重新输入：");
-			continue;
-		}
-		break;
-	}
+	input_number(shutdown_sec, sizeof(break_time), 60);
 
 	system("cls && mode con cols=47 lines=15");
 	printf("当前设置的参数为：\n\n");
 
-	if (strcmp(temp_time_period, "00:00-00:00") == 0)
-		printf("电脑每天能运行的时间段： %s（不限制运行时间段）\n", temp_time_period);
+	if (strcmp(time_period_backup, "00:00-00:00") == 0)
+		printf("电脑每天能运行的时间段： %s（不限制运行时间段）\n", time_period_backup);
 
-	else if (strcmp(temp_time_period, "00:00 - 00:00") == 0)
-		printf("电脑每天能运行的时间段： %s（不限制运行时间段）\n", temp_time_period);
+	else if (strcmp(time_period_backup, "00:00 - 00:00") == 0)
+		printf("电脑每天能运行的时间段： %s（不限制运行时间段）\n", time_period_backup);
 
 	else
-		printf("电脑每天能运行的时间段： %s", temp_time_period);
+		printf("电脑每天能运行的时间段： %s", time_period_backup);
 
 	if (strcmp(date, "00") == 0)
 		printf("\n电脑每个月能运行的日期： %s（不限制运行日期）", date);
@@ -733,6 +532,7 @@ begin://goto语句标签
 
 	printf("\n电脑每次能运行的时间：   %s 分", run_time);
 	printf("\n电脑每次休息的时间：     %s 分", break_time);
+	printf("\n在休息时间启动时关机时间：%s 秒", shutdown_sec);
 
 	while (1)
 	{
@@ -745,27 +545,28 @@ begin://goto语句标签
 			break;
 		else if (c == 'n' || c == 'N')
 		{
-			Initialize(run_time, break_time, 2);
+			memset(run_time, 0, sizeof(run_time));
+			memset(break_time, 0, sizeof(break_time));
 			goto begin;
 		}
 		else
 			continue;
 	}
 
+	write_file(cmd, run_time, break_time, time_period_backup, date, shutdown_sec);
 
-	sprintf_s(config_content, MAX_PATH, "电脑开机后能运行的时间 = %s ;\n"
-		"电脑关机后强制休息的时间 = %s ;\n"
-		"电脑每天能运行的时间段 = %s ;\n"
-		"电脑每个月能运行的日期 = %s ;\n"
-		"电脑在休息时间内启动时关机时间 = %d ;", run_time, break_time, temp_time_period, date, i);
+	system("cls && title 正在添加自启动，请退出杀软 &&mode con cols=72 lines=25");
+	printf("\n\n\n\n\n注意：正在添加自启动，若遭到杀软拦截，请点击允许并加入白名单。\n\n\t                否则软件无法正常启动！\n\n\n");
+	Sleep(3000);
+	add_start();
+	exit(EXIT_SUCCESS);
+}
 
-	strcat_s(config_content, MAX_SIZE, "\n\n注意：\n"
-		"1、“电脑开机后能运行的时间”和“电脑关机后强制休息的时间”两项值的单位都为分，值范围5~999。\n"
-		"2、“电脑每天能运行的时间段”项值的格式为“xx:xx-xx:xx”，请不要输入中文标点（如：“：”）。\n"
-		"3、每一项末尾的分号是英文分号，更改内容请保留原格式。\n"
-		"4、如果出现程序不能正常运行，请在“timec自定义版”重新创建配置文件或添加“-reset”参数启动timec隐藏版。");
-
-
+// 写配置文件
+void write_file(char* cmd, char* run_time, char* break_time, char* time_period, char* date, char* shutdown_time)
+{
+	FILE* fp = NULL;
+	char content[MAX_SIZE] = { 0 };		//储存将要写入配置文件的内容         
 	//创建目录
 	if (_access(folder_path, 0) == -1)//判断目录是否存在
 	{
@@ -774,88 +575,155 @@ begin://goto语句标签
 			MessageBox(NULL, TEXT("创建目录失败，请以管理员权限运行本软件。"), TEXT("ERROR"), MB_YESNO | MB_ICONERROR);
 			exit(EXIT_FAILURE);
 		}
-		system(cmd);//执行cmd命令隐藏目录
 	}
+	system(cmd);//执行cmd命令隐藏目录
+
+	WritePrivateProfileStringA(APP_NAME, RUN_TIME_NAME, run_time, config_file_path);
+	WritePrivateProfileStringA(APP_NAME, BREAK_TIME_NAME, break_time, config_file_path);
+	WritePrivateProfileStringA(APP_NAME, TIME_PERIOD_NAME, time_period, config_file_path);
+	WritePrivateProfileStringA(APP_NAME, DATE_NAME, date, config_file_path);
+	WritePrivateProfileStringA(APP_NAME, SHUTDOWN_TIME_NAME, shutdown_time, config_file_path);
 
 	//创建配置文件
-	if ((err = fopen_s(&fp, config_file_path, "w")) != 0)
+	if (fopen_s(&fp, config_file_path, "a+") != 0)
 	{
 		perror("\n创建配置文件失败");
 		system("pause");
 		exit(EXIT_FAILURE);
 	}
-	fputs(config_content, fp);//向配置文件输出参数
-	fclose(fp);
-
-	system("cls && title 正在添加自启动，请退出杀软 &&mode con cols=72 lines=25");
-	printf("\n\n\n\n\n注意：正在添加自启动，若遭到杀软拦截，请点击允许并加入白名单。\n\n\t                否则软件无法正常启动！\n\n\n");
-	Sleep(3000);
-
-
-	//创建数据文件
-	if ((err = fopen_s(&fp, time_dat_path, "w")) != 0)
+	strcat_s(content, MAX_SIZE, "\n\n注意：\n"
+		"1、“电脑开机后能运行的时间”和“电脑关机后强制休息的时间”两项值的单位都为分，值范围5~999。\n"
+		"2、“电脑每天能运行的时间段”项值的格式为“xx:xx-xx:xx”，请不要输入中文标点（如：“：”）。\n"
+		"3、每一项末尾的分号是英文分号，更改内容请保留原格式。\n"
+		"4、如果出现程序不能正常运行，请在“timec自定义版”重新创建配置文件或添加“-reset”参数启动timec隐藏版。");
+	if (fp)
 	{
-		perror("\n创建数据文件失败");
-		system("pause");
-		exit(EXIT_FAILURE);
+		fputs(content, fp);//向配置文件输出参数
+		fclose(fp);
 	}
-	fclose(fp);
-
-	//复制文件
-	GetModuleFileName(NULL, W_path, MAX_PATH); //调用windows api获得“timec隐藏版.exe”的路径
-	if (!CopyFile(W_path, W_dest_path, FALSE))
-	{
-		if (MessageBox(NULL, TEXT("复制文件失败，请以管理员权限重试或以另一种模式添加自启动。\n\t是否以另一种模式添加自启动？"), TEXT("错误"), MB_YESNO | MB_ICONERROR) == IDNO)
-			exit(EXIT_FAILURE);
-		else
-			CopyFileToStartFolder(W_path);
-	}
-
-
-	//打开注册表添加启动项
-	if (RegOpenKeyEx(HKEY_CURRENT_USER, lpSubKey, 0, KEY_ALL_ACCESS, &hkey) == ERROR_SUCCESS)
-	{  //添加一个子Key,并设置值
-		RegSetValueExA(hkey, "timec隐藏版", 0, REG_SZ, (BYTE*)dest_path, strlen(dest_path));
-		RegCloseKey(hkey);//关闭注册表
-
-		i = MessageBox(NULL, TEXT("添加自启动成功，重启后生效。是否现在重启？\n注意：1、如需取消自启动，请在timec自定义版删除。\n            2、重启前请保存好数据资料！"), TEXT("成功"), MB_YESNO | MB_ICONQUESTION);
-		if (i == IDYES)
-		{
-			system("shutdown -a");
-			system("shutdown -r -t 00");
-		}
-	}
-	else
-	{
-		if (MessageBox(NULL, TEXT("添加自启动失败，请以管理员权限重试或以另一种模式添加自启动。\n\t是否以另一种模式添加自启动？"), TEXT("失败"), MB_OK | MB_ICONERROR) == IDNO)
-		{
-			remove(folder_path);
-			exit(EXIT_SUCCESS);
-		}
-		else
-			CopyFileToStartFolder(W_path);
-	}
-	exit(EXIT_SUCCESS);
 }
 
+// 添加自启动
+void add_start(void)
+{
+	char* key = { "Software\\Microsoft\\Windows\\CurrentVersion\\Run" }; //系统启动项路径
+	HKEY hkey;
+	int ret_val;
+	char path[MAX_PATH];  //储存timec隐藏版.exe的路径    
 
+	//复制文件
+	GetModuleFileNameA(NULL, path, MAX_PATH); //调用windows api获得“timec隐藏版.exe”的路径
+	if (!CopyFileA(path, dest_path, FALSE))
+	{
+		MessageBox(NULL, TEXT("复制文件失败，请以管理员权限重试！"), TEXT("错误"), MB_OK | MB_ICONERROR);
+		exit(EXIT_FAILURE);
+	}
+
+	//打开注册表添加启动项
+	if (RegOpenKeyExA(HKEY_CURRENT_USER, key, 0, KEY_ALL_ACCESS, &hkey) != ERROR_SUCCESS)
+	{
+		MessageBox(NULL, TEXT("添加到注册表失败！"), TEXT("失败"), MB_OK | MB_ICONERROR);
+		exit(EXIT_FAILURE);
+	}
+	//添加一个子Key,并设置值
+	sprintf_s(path, sizeof(path), "\"%s\" %s", dest_path, REG_PARAMETER);
+	RegSetValueExA(hkey, "timec隐藏版", 0, REG_SZ, (BYTE*)path, MAX_PATH);
+	RegCloseKey(hkey);//关闭注册表
+
+	ret_val = MessageBox(NULL, TEXT("添加自启动成功，重启后生效。是否现在重启？\n注意：1、如需取消自启动，请在timec自定义版删除。\n            2、重启前请保存好数据资料！"), TEXT("成功"), MB_YESNO | MB_ICONQUESTION);
+	if (ret_val == IDYES)
+		system("shutdown -a && shutdown -r -t 00");
+}
+
+// 判断按ch分割的字符串（1,2,3）的每个日期是否正确（大于0小于32）
+int judge_date(const char* date_str, size_t date_str_size, char sep)
+{
+	int date;
+	char* p = NULL, * con_text = NULL;
+	char* backup = calloc(date_str_size, sizeof(char));
+	if (!backup)
+		return 0;
+
+	strcpy_s(backup, date_str_size, date_str);
+	// 分割字符串
+	p = (char*)strtok_s(backup, &sep, &con_text);
+	while (p != NULL)
+	{
+		sscanf_s(p, "%d", &date);
+		if (date < 1 || date>31)
+		{
+			free(backup);
+			return -1;
+		}
+		p = (char*)strtok_s(NULL, &sep, &con_text);
+	}
+	free(backup);
+	return 0;
+}
+
+// 输入数字
+int input_number(char* dest_str, size_t dest_str_size, int max_value)
+{
+	int num;
+	while (1)
+	{
+		while (scanf_s("%d", &num) != 1)
+		{
+			printf("\n输入错误，请重试：");
+			Flush();
+		}
+		Flush();
+		if (num > max_value)
+		{
+			printf("\n最大值不能超过%d，请重新输入：", max_value);
+			continue;
+		}
+		break;
+	}
+	if (dest_str && dest_str_size > 0)
+		sprintf_s(dest_str, dest_str_size, "%d", num);
+	return num;
+}
 
 /*****************************************************************************
 							 执行关机命令
 *****************************************************************************/
-void ShutDown(void)
+void shut_down(time_t sec, char* tip)
 {
 	int  run_time;
-	char command[40];
+	char command[SIZE];
+	TCHAR* buf = NULL;
 
-	//从配置文件读取电脑能运行的时间
-	Read_File(&run_time, NULL, NULL, NULL, 1);
-	run_time *= 60;//把分转换为秒
-
+	if (sec == -1)
+	{
+		//从配置文件读取电脑能运行的时间
+		read_file(NULL, &run_time, NULL, NULL, 0, NULL, 0, NULL);
+		run_time *= 60;//把分转换为秒
+	}
+	else
+		run_time = (int)sec;
 	system("shutdown -a");
-	sprintf_s(command, 40, "shutdown -f -s -t %d", run_time);
+	sprintf_s(command, sizeof(command), "shutdown -f -s -t %d", run_time);
 	system(command);
-	Shutdown_Tip(run_time);
+	if (!tip)
+		shutdown_tip(run_time);
+	else
+	{
+		// 将多字节字符转为宽字节字符
+		buf = str_to_wcs(tip);
+		MessageBox(NULL, buf, TEXT("警告"), MB_OK | MB_ICONWARNING);
+		exit(EXIT_SUCCESS);
+	}
+}
+
+// 多字节字符转宽字节字符
+wchar_t* str_to_wcs(char* source_str)
+{
+	// 先求得需要的目标缓冲区的大小
+	int size = MultiByteToWideChar(CP_ACP, 0, source_str, -1, NULL, 0);
+	wchar_t* dest_str = calloc(size, sizeof(TCHAR));
+	MultiByteToWideChar(CP_ACP, 0, source_str, -1, dest_str, size);
+	return dest_str;
 }
 
 
@@ -863,36 +731,20 @@ void ShutDown(void)
 /*****************************************************************************
 				当前时间距离关机时间还有3分时输出关机提示
 *****************************************************************************/
-void Shutdown_Tip(const long sec)
+void shutdown_tip(const long sec)
 {
 	long second = sec - 180;
-	char tip[SIZE];
+	char tip[SIZE] = { 0 };
 
 	if (second <= 180)
 	{
-		system("shutdown -a");
-		sprintf_s(tip, SIZE, "shutdown -f -s -t %d -c 还有 %d分 就要关机了，请做好准备！", second, second / 60);
+		sprintf_s(tip, sizeof(tip), "shutdown -a && shutdown -f -s -t %d -c 还有 %d分 就要关机了，请做好准备！", second, second / 60);
 		system(tip);
-		Initialize(tip, NULL, 1);
 	}
 	else
 	{
 		Sleep(second * 1000);
-		system("shutdown -a");
-		system("shutdown -f -s -t 180 -c 还有 3分 就要关机了，请做好准备！");
-	}
-
-	second -= 5;
-	if (second <= 5)
-	{
-		system("shutdown -a");
-		sprintf_s(tip, SIZE, "shutdown -f -s -t %d -c 还有 %d秒 就要关机了，请做好准备！", second, second);
-	}
-	else
-	{
-		Sleep(second * 1000);
-		system("shutdown -a");
-		system("shutdown -f -s -t 5 -c 还有 5秒 就要关机了，请做好准备！");
+		system("shutdown -a && shutdown -f -s -t 180 -c 还有 3分 就要关机了，请做好准备！");
 	}
 	exit(EXIT_SUCCESS);
 }
@@ -912,56 +764,9 @@ void Flush(void)
 /*****************************************************************************
 							清除fgets读取的'\n'
 *****************************************************************************/
-void Fgets_n(char* str)
+void fgets_n(char* str)
 {
 	char* find;
 	if ((find = strchr(str, '\n')))
 		*find = '\0';
-}
-
-
-/*****************************************************************************
-								初始化数组
-*****************************************************************************/
-void Initialize(char* str1, char* str2, int n)
-{
-	while (*str1 != '\0')
-	{
-		if (n == 1)
-			*str1++ = '\0';
-		else if (n == 2)
-			*str2++ = *str1++ = '\0';
-	}
-}
-
-
-/*****************************************************************************
-					   添加自启动模式2复制到启动目录
-*****************************************************************************/
-void CopyFileToStartFolder(wchar_t* source)
-{
-	wchar_t W_DestPath[MAX_PATH];
-
-	if (GetEnvironmentVariable(L"APPDATA", W_DestPath, SIZE) == 0) //获取用户文件夹
-		wcscpy_s(W_DestPath, SIZE, L"C:\\Users\\Administrator\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\timec隐藏版.exe");//获取失败则默认路径
-	else
-		wcscat_s(W_DestPath, MAX_PATH, L"\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\timec隐藏版.exe");
-
-	//复制文件
-	if (!CopyFile(source, W_DestPath, FALSE))
-	{
-		//printf("%d", GetLastError());
-		MessageBox(NULL, TEXT("复制文件失败，请以管理员权限重试。"), TEXT("错误"), MB_OK | MB_ICONERROR);
-		exit(EXIT_FAILURE);
-	}
-
-	int i = MessageBox(NULL, TEXT("添加自启动成功，重启后生效。是否现在重启？\n注意：1、如需取消自启动，请在timec自定义版删除。\n            2、重启前请保存好数据资料！"), TEXT("成功"), MB_YESNO | MB_ICONQUESTION);
-	if (i == IDYES)
-	{
-		system("shutdown -a");
-		system("shutdown -r -t 00");
-		exit(EXIT_SUCCESS);
-	}
-	else if (i == IDNO)
-		exit(EXIT_SUCCESS);
 }

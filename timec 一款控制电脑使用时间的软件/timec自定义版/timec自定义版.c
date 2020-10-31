@@ -125,6 +125,12 @@ int password(void)//密码验证
 				exit(EXIT_FAILURE);
 			}
 
+			if (!fpwrite)
+			{
+				MessageBox(NULL, TEXT("密码文件创建错误！\n请以管理员权限运行重试！"), TEXT("错误"), MB_OK | MB_ICONERROR);//弹出提示框
+				exit(EXIT_FAILURE);
+			}
+
 			for (i = 0; i <= 6; i++)  //把新密码写入文件
 			{
 				fputc(~new_password[i], fpwrite);//输出加密后的内容到文件
@@ -150,7 +156,11 @@ int password(void)//密码验证
 			MessageBox(NULL, TEXT("密码文件读取错误！\n请检查本程序目录是否有“Password.dat”这个文件。如果没有，请修改密码。"), TEXT("错误"), MB_OK | MB_ICONERROR);//弹出提示框
 			return 1;
 		}
-
+		if (!fpread)
+		{
+			MessageBox(NULL, TEXT("密码文件读取错误！\n请检查本程序目录是否有“Password.dat”这个文件。如果没有，请修改密码。"), TEXT("错误"), MB_OK | MB_ICONERROR);//弹出提示框
+			exit(EXIT_SUCCESS);
+		}
 
 		for (i = 0; i <= 6; i++)  //从文件中读取内容到ch。EOF是文件结束标志。
 		{
@@ -253,7 +263,7 @@ int add_start(void)
 	int i;
 
 
-	if (GetEnvironmentVariable("APPDATA", Y_DestPath, SIZE) == 0) //获取用户文件夹
+	if (GetEnvironmentVariableA("APPDATA", Y_DestPath, SIZE) == 0) //获取用户文件夹
 	{
 		strcpy_s(Y_DestPath, SIZE, "C:\\Users\\Administrator\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\timec隐藏版.exe");//获取失败则默认路径
 		strcpy_s(Z_DestPath, SIZE, "C:\\Users\\Administrator\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\timec自定义版.exe");//获取失败则默认路径
@@ -265,7 +275,7 @@ int add_start(void)
 		strcat_s(Z_DestPath, SIZE, "\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\timec自定义版.exe");
 	}
 
-	if (GetEnvironmentVariable("SYSTEMDRIVE", SystemRoot, SIZE) == 0) //获取系统盘盘符
+	if (GetEnvironmentVariableA("SYSTEMDRIVE", SystemRoot, SIZE) == 0) //获取系统盘盘符
 		strcpy_s(SystemRoot, SIZE, "C:");                             //获取失败则默认为C:
 
 	sprintf_s(folder_path, SIZE, "%s\\ProgramData\\timec", SystemRoot);//文件夹路径
@@ -330,11 +340,17 @@ int add_start(void)
 			system("pause");
 			exit(EXIT_FAILURE);
 		}
+		if (!fpwrite)
+		{
+			MessageBox(NULL, TEXT("密码文件读取错误！\n请检查本程序目录是否有“Password.dat”这个文件。如果没有，请修改密码。"), TEXT("错误"), MB_OK | MB_ICONERROR);//弹出提示框
+			exit(EXIT_SUCCESS);
+		}
+
 		fclose(fpwrite);
 
 		strcat_s(buffer, SIZE, "\\timec隐藏版.exe");//复制前的路径
 		//复制文件
-		if (!CopyFile(buffer, timec_Y, FALSE))
+		if (!CopyFileA(buffer, timec_Y, FALSE))
 		{
 			if (MessageBox(NULL, TEXT("复制文件失败，请以管理员权限重试或以另一种模式添加自启动。\n\t是否以另一种模式添加自启动？"), TEXT("错误"), MB_YESNO | MB_ICONERROR) == IDNO)
 				exit(EXIT_FAILURE);
@@ -344,9 +360,9 @@ int add_start(void)
 		system(cmd);//设置为隐藏文件
 
 		//打开注册表启动项 
-		if (RegOpenKeyEx(HKEY_CURRENT_USER, szSubKey, 0, KEY_ALL_ACCESS, &hKey) == ERROR_SUCCESS)
+		if (RegOpenKeyExA(HKEY_CURRENT_USER, szSubKey, 0, KEY_ALL_ACCESS, &hKey) == ERROR_SUCCESS)
 		{  //添加一个子Key,并设置值
-			RegSetValueEx(hKey, "timec隐藏版", 0, REG_SZ, (BYTE*)timec_Y, strlen(timec_Y));
+			RegSetValueExA(hKey, "timec隐藏版", 0, REG_SZ, (BYTE*)timec_Y, strlen(timec_Y));
 			RegCloseKey(hKey);//关闭注册表
 
 			ResetFile(folder_path, config_file_path);
@@ -392,7 +408,7 @@ int add_start(void)
 
 		strcat_s(buffer, SIZE, "\\timec自定义版.exe");//复制前的路径
 		//复制文件
-		if (!CopyFile(buffer, timec_Y, FALSE))
+		if (!CopyFileA(buffer, timec_Y, FALSE))
 		{
 			if (MessageBox(NULL, TEXT("复制文件失败，请以管理员权限重试或以另一种模式添加自启动。\n\t是否以另一种模式添加自启动？"), TEXT("错误"), MB_YESNO | MB_ICONERROR) == IDNO)
 				exit(EXIT_FAILURE);
@@ -400,9 +416,9 @@ int add_start(void)
 				CopyFileToStartFolder(buffer, Z_DestPath);
 		}
 
-		if (RegOpenKeyEx(HKEY_CURRENT_USER, szSubKey, 0, KEY_ALL_ACCESS, &hKey) == ERROR_SUCCESS)
+		if (RegOpenKeyExA(HKEY_CURRENT_USER, szSubKey, 0, KEY_ALL_ACCESS, &hKey) == ERROR_SUCCESS)
 		{
-			RegSetValueEx(hKey, "timec自定义版", 0, REG_SZ, (BYTE*)timec_Z, strlen(timec_Z));
+			RegSetValueExA(hKey,"timec自定义版", 0, REG_SZ, (BYTE*)timec_Z, strlen(timec_Z));
 			RegCloseKey(hKey);
 
 			printf("\t\t    添加成功！\n\n\t         ");
@@ -528,6 +544,12 @@ void del_start_password(void)//删除自启动验证密码
 			exit(EXIT_SUCCESS);
 		}
 
+		if (!fpread)
+		{
+			MessageBox(NULL, TEXT("密码文件读取错误！\n请检查本程序目录是否有“Password.dat”这个文件。如果没有，请修改密码。"), TEXT("错误"), MB_OK | MB_ICONERROR);//弹出提示框
+			exit(EXIT_SUCCESS);
+		}
+
 		for (i = 0; i <= 6; i++)  //从文件中读取内容到ch。EOF是文件结束标志。
 		{
 			new_password[i] = fgetc(fpread);//从文件读取密码
@@ -574,7 +596,7 @@ void Initialize(char* str1, char* str2, int n)
 int CopyFileToStartFolder(char* source, char* DestPath)
 {
 	//复制文件
-	if (!CopyFile(source, DestPath, FALSE))
+	if (!CopyFileA(source, DestPath, FALSE))
 	{
 		MessageBox(NULL, TEXT("复制文件失败，请以管理员权限重试。"), TEXT("错误"), MB_OK | MB_ICONERROR);
 		exit(EXIT_FAILURE);
