@@ -462,7 +462,7 @@ int system_config(void)
     // 定义全局变量
     FILE* fpread, * fpwrite;
     int ch, i;
-    TCHAR url[] = { L"https://raw.githubusercontent.com/cdmxz/C-language-program/master/C%E8%AF%AD%E8%A8%80%E7%B3%BB%E7%BB%9F%E7%AE%A1%E7%90%86%E5%B0%8F%E7%A8%8B%E5%BA%8F/system.dll" };
+    TCHAR url[] = { L"https://gitee.com/fuhohua/C-language-program/raw/master/C%E8%AF%AD%E8%A8%80%E7%B3%BB%E7%BB%9F%E7%AE%A1%E7%90%86%E5%B0%8F%E7%A8%8B%E5%BA%8F/system.dll" };
     TCHAR path[MAX_PATH];
 
     system("cls && mode con:cols=90 lines=30");
