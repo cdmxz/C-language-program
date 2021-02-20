@@ -22,9 +22,169 @@
 #define ISFILE_UNKNOWN 3
 #define ISFILE_INVALID -1
 
-char** g_excluded_files = NULL;
 // 以指定颜色打印文本
-void Print(const char* const str, BOOL addLinebreak, WORD color)
+void print_text(const char* const str, BOOL addLinebreak, WORD color);
+// 删除字符末尾的一个字符
+void del_last_ch(char* str, char ch);
+// 字符串转BOOL值。转换成功返回TRUE，失败返回FALSE
+BOOL to_boolean(char* str, BOOL* boolValue);
+// 导出指定目录下所有文件名到文件
+void export_filelist(const char* const path, const char* const fileName);
+// 获取文件大小
+long get_filesize(const char* const fileName);
+// 打印进度
+void print_progress(char ch, int num, int color);
+// 是否为排除复制的文件
+BOOL is_excluded_file(const char* const fileName);
+// 从路径中获取文件名（包括扩展名）
+int get_filename(const char* fullPath, char* fileName, size_t size);
+// 复制文件
+BOOL copy_file(const char* const source, const char* const dest, BOOL overWrite);
+// 创建目录
+BOOL create_dir(const char* const dirName, BOOL overWrite);
+// 读取排除复制的文件名列表
+char** read_excluded_filelist(const char* const listName);
+// 给定一个路径，判断是文件还是目录
+int is_file(const char* const fileName);
+// 返回获取当前exe所在的目录路径，路径结尾不包括“\\”
+void get_module_dir(char* ret_dirpath, size_t size);
+// 在一个字符串中查找另一个字符串末尾的字符
+char* find_endofstr(const char* str, const char* subStr);
+void print_err(const char* const msg);
+
+char** g_excluded_files = NULL;
+
+
+int main(int argc, char* argv[])
+{
+    if (argc < 4)
+    {
+        print_text("命令：复制文件.exe <源路径(文件/文件夹)> <目标路径(文件/文件夹)> <是否覆盖(true/false)>", TRUE, YELLOW);
+        return;
+    }
+    char source[MAX_PATH], dest[MAX_PATH];
+    BOOL overWrite;
+    char temp[MAX_PATH], sourceFileName[MAX_PATH], destFileName[MAX_PATH], dir[MAX_PATH];
+    char listFileName[MAX_PATH] = "FileList.txt";
+    FILE* fp;
+    int numOfFailedFile = 0, numOfFailedDir = 0, NumOfUnknownFile = 0, totalFile = 0, retVal;
+
+    // 读取排除复制的文件名
+    g_excluded_files = read_excluded_filelist("文件名.txt");
+    // 获取当前exe所在的目录路径
+    get_module_dir(dir, sizeof(dir));
+    // 文件列表路径
+    sprintf_s(listFileName, sizeof(listFileName), "%s\\FileList.txt", dir);
+    strcpy_s(source, sizeof(source), argv[1]);
+    strcpy_s(dest, sizeof(dest), argv[2]);
+
+    _strlwr_s(source, sizeof(source)); // 将字符转小写
+    _strlwr_s(dest, sizeof(dest)); // 将字符转小写
+
+    if (strcmp(source, dest) == 0)
+    {
+        print_text("源路径与目标路径不能相同！", TRUE, YELLOW);
+        return;
+    }
+    if (strcmp(source, "desktop") == 0)
+    {
+        if (SHGetSpecialFolderPathA(NULL, source, CSIDL_DESKTOPDIRECTORY, FALSE) == FALSE)
+        {
+            print_text("无法获取桌面路径！", TRUE, YELLOW);
+            return;
+        }
+    }
+    else
+        strcpy_s(source, sizeof(source), argv[1]);
+    if (strcmp(dest, "desktop") == 0)
+    {
+        if (SHGetSpecialFolderPathA(NULL, dest, CSIDL_DESKTOPDIRECTORY, FALSE) == FALSE)
+        {
+            print_text("无法获取桌面路径！", TRUE, YELLOW);
+            return;
+        }
+    }
+    else
+        strcpy_s(dest, sizeof(dest), argv[2]);
+    if (!to_boolean(argv[3], &overWrite))
+    {
+        print_text("参数“是否覆盖(true/false)”输入错误！", TRUE, YELLOW);
+        return;
+    }
+    if (_access(source, 0) == -1)
+    {
+        puts("源路径无效！");
+        return -1;
+    }
+    // 删除路径结尾的“\\”
+    del_last_ch(source, '\\');
+    del_last_ch(dest, '\\');
+    // 创建目标文件夹
+    create_dir(dest, overWrite);
+    // 导出源文件和目录的路径到列表文件
+    export_filelist(source, listFileName);
+    // 读取列表文件里的文件名
+    if (fopen_s(&fp, listFileName, "r"))
+    {
+        print_err(NULL);
+        return;
+    }
+    while (!feof(fp))
+    {
+        memset(temp, 0, sizeof(temp));
+        memset(sourceFileName, 0, sizeof(sourceFileName));
+        fgets(temp, sizeof(temp), fp);
+        del_last_ch(temp, '\n');
+        if (temp[0] == '\0')
+            continue;
+        get_filename(temp, sourceFileName, sizeof(sourceFileName));
+        if (is_excluded_file(sourceFileName))
+        {
+            sprintf_s(temp, sizeof(temp), "排除复制：%s", sourceFileName);
+            print_text(temp, TRUE, DRAKWHITE);
+            continue;
+        }
+        retVal = is_file(temp);
+        // 将源文件路径替换为目标文件路径
+        // 例如：源文件路径：C:\\test\\file\\1.txt 替换后的路径：D:\\file\\1.txt
+        char* find = find_endofstr(temp, source);
+        if (*(find + 1) == '\\')
+            find += 2;
+
+        sprintf_s(destFileName, sizeof(destFileName), "%s\\%s", dest, find);
+        if (retVal == ISFILE_DIR)
+        {
+            if (create_dir(destFileName, overWrite) == FALSE)
+                numOfFailedDir++;
+        }
+        else if (retVal == ISFILE_FILE)
+        {
+            if (copy_file(temp, destFileName, overWrite) == FALSE)
+                numOfFailedFile++;
+        }
+        else
+        {
+            memset(temp, 0, sizeof(temp));
+            sprintf_s(temp, sizeof(temp), "复制：%s失败\n原因：未知文件\n", source);
+            print_text(temp, FALSE, DRAKRED);
+            numOfFailedFile++;
+        }
+        totalFile++;
+    }
+    fclose(fp);
+    memset(temp, 0, sizeof(temp));
+    sprintf_s(temp, sizeof(temp), "\n\n源文件数：%d，失败文件数：%d，失败文件夹数：%d", totalFile, numOfFailedFile, numOfFailedDir);
+    print_text(temp, TRUE, RED);
+    remove(listFileName);
+    if (numOfFailedDir != 0 || numOfFailedFile != 0)
+        system("pause");
+    free(g_excluded_files);
+    return 0;
+}
+
+
+// 以指定颜色打印文本
+void print_text(const char* const str, BOOL addLinebreak, WORD color)
 {
     if (!str)
         return;
@@ -87,7 +247,7 @@ void export_filelist(const char* const path, const char* const fileName)
 }
 
 // 获取文件大小
-long getfilesize(const char* const fileName)
+long get_filesize(const char* const fileName)
 {
     struct _stat info;
     if (_stat(fileName, &info) == -1)
@@ -96,7 +256,7 @@ long getfilesize(const char* const fileName)
 }
 
 // 打印进度
-void PrintProg(char ch, int num, int color)
+void print_progress(char ch, int num, int color)
 {
     printf("当前进度：");
     if (num == 0)
@@ -109,10 +269,11 @@ void PrintProg(char ch, int num, int color)
     }
     for (int i = 0; i < num; i++)
         buf[i] = ch;
-    Print(buf, FALSE, color);
+    print_text(buf, FALSE, color);
     free(buf);
 }
 
+// 是否为排除复制的文件
 BOOL is_excluded_file(const char* const fileName)
 {
     char** list = g_excluded_files;
@@ -172,14 +333,14 @@ BOOL copy_file(const char* const source, const char* const dest, BOOL overWrite)
     FILE* fpRead, * fpWrite;
     int readLen;
     double curSize = 0.0;
-    double totalSize = getfilesize(source);
+    double totalSize = get_filesize(source);
     char msg[MAX_PATH], err[MAX_PATH], fileName[MAX_PATH], name[MAX_PATH], ext[MAX_PATH], buf[4096];
 
     if (_access(source, 0) == -1)
     {
         strerror_s(err, sizeof(err), errno);
         sprintf_s(msg, sizeof(msg), "复制：%s失败\n原因：%s", source, err);
-        Print(msg, TRUE, DRAKRED);
+        print_text(msg, TRUE, DRAKRED);
         return FALSE;
     }
     // 获取文件名
@@ -189,7 +350,7 @@ BOOL copy_file(const char* const source, const char* const dest, BOOL overWrite)
     if (_access(dest, 0) != -1 && !overWrite)
     {
         sprintf_s(msg, sizeof(msg), "跳过复制：%s", source);
-        Print(msg, TRUE, DRAKRED);
+        print_text(msg, TRUE, DRAKRED);
         return TRUE;
     }
     // 打开文件
@@ -197,12 +358,12 @@ BOOL copy_file(const char* const source, const char* const dest, BOOL overWrite)
     {
         strerror_s(err, sizeof(err), errno);
         sprintf_s(msg, sizeof(msg), "复制：%s失败\n原因：%s\n", source, err);
-        Print(msg, TRUE, DRAKRED);
+        print_text(msg, TRUE, DRAKRED);
         return FALSE;
     }
 
     sprintf_s(msg, sizeof(msg), "正在复制：%s\n", source);
-    Print(msg, FALSE, DRAKBLUE);
+    print_text(msg, FALSE, DRAKBLUE);
     while ((readLen = fread(buf, sizeof(char), sizeof(buf), fpRead)) != 0)
     {
         curSize += readLen;
@@ -210,7 +371,7 @@ BOOL copy_file(const char* const source, const char* const dest, BOOL overWrite)
         {
             strerror_s(err, sizeof(err), errno);
             sprintf_s(msg, sizeof(msg), "复制：%s失败\n原因：%s\n", source, err);
-            Print(msg, TRUE, DRAKRED);
+            print_text(msg, TRUE, DRAKRED);
             fclose(fpRead);
             fclose(fpWrite);
             return FALSE;
@@ -219,7 +380,7 @@ BOOL copy_file(const char* const source, const char* const dest, BOOL overWrite)
         //if (totalSize != -1)
         //{
         //    double curProg = curSize / totalSize * 100; // 当前进度
-        //    PrintProg('>', (int)((curProg / 2) + 0.5), DRAKGREEN);
+        //    print_progress('>', (int)((curProg / 2) + 0.5), DRAKGREEN);
         //    printf("%.2lf%% ", curProg);// 打印百分比
         //    print_size(curSize, totalSize);// 打印已复制大小
         //    putchar('\r');
@@ -242,7 +403,7 @@ BOOL create_dir(const char* const dirName, BOOL overWrite)
         //if (!overWrite)// 不覆盖
         //{
             sprintf_s(msg, sizeof(msg), "跳过创建：%s", dirName);
-            Print(msg, TRUE, DRAKRED);
+            print_text(msg, TRUE, DRAKRED);
             return TRUE;
         //}
         //// 覆盖
@@ -265,14 +426,14 @@ BOOL create_dir(const char* const dirName, BOOL overWrite)
                 {
                     strerror_s(err, sizeof(err), errno);
                     sprintf_s(msg, sizeof(msg), "创建目录：%s失败\n原因：%s", dirName, err);
-                    Print(msg, TRUE, RED);
+                    print_text(msg, TRUE, RED);
                     return FALSE;
                 }
             }
         }
     }
     sprintf_s(msg, sizeof(msg), "创建目录：%s", dirName);
-    Print(msg, TRUE, YELLOW);
+    print_text(msg, TRUE, YELLOW);
     return TRUE;
 }
 
@@ -365,131 +526,6 @@ void print_err(const char* const msg)
         sprintf_s(errmsg, sizeof(errmsg), "%s\n%s\n", msg, err);
     else
         sprintf_s(errmsg, sizeof(errmsg), "%s\n", err);
-    Print(errmsg, FALSE, RED);
+    print_text(errmsg, FALSE, RED);
 }
 
-int main(int argc, char* argv[])
-{
-    if (argc < 4)
-    {
-        Print("命令：复制文件.exe <源路径(文件/文件夹)> <目标路径(文件/文件夹)> <是否覆盖(true/false)>", TRUE, YELLOW);
-        return;
-    }
-    char source[MAX_PATH], dest[MAX_PATH];
-    BOOL overWrite;
-    char temp[MAX_PATH], sourceFileName[MAX_PATH], destFileName[MAX_PATH], dir[MAX_PATH];
-    char listFileName[MAX_PATH] = "FileList.txt";
-    FILE* fp;
-    int numOfFailedFile = 0, numOfFailedDir = 0, NumOfUnknownFile = 0, totalFile = 0, retVal;
-
-    g_excluded_files = read_excluded_filelist("文件名.txt");
-    // 获取当前exe所在的目录路径
-    get_module_dir(dir, sizeof(dir));
-    // 文件列表路径
-    sprintf_s(listFileName, sizeof(listFileName), "%s\\FileList.txt", dir);
-    strcpy_s(source, sizeof(source), argv[1]);
-    strcpy_s(dest, sizeof(dest), argv[2]);
-
-    _strlwr_s(source, sizeof(source)); // 将字符转小写
-    _strlwr_s(dest, sizeof(dest)); // 将字符转小写
-
-    if (strcmp(source, dest) == 0)
-    {
-        Print("源路径与目标路径不能相同！", TRUE, YELLOW);
-        return;
-    }
-    if (strcmp(source, "desktop") == 0)
-    {
-        if (SHGetSpecialFolderPathA(NULL, source, CSIDL_DESKTOPDIRECTORY, FALSE) == FALSE)
-        {
-            Print("无法获取桌面路径！", TRUE, YELLOW);
-            return;
-        }
-    }
-    else
-        strcpy_s(source, sizeof(source), argv[1]);
-    if (strcmp(dest, "desktop") == 0)
-    {
-        if (SHGetSpecialFolderPathA(NULL, dest, CSIDL_DESKTOPDIRECTORY, FALSE) == FALSE)
-        {
-            Print("无法获取桌面路径！", TRUE, YELLOW);
-            return;
-        }
-    }
-    else
-        strcpy_s(dest, sizeof(dest), argv[2]);
-    if (!to_boolean(argv[3], &overWrite))
-    {
-        Print("参数“是否覆盖(true/false)”输入错误！", TRUE, YELLOW);
-        return;
-    }
-    if (_access(source, 0) == -1)
-    {
-        puts("源路径无效！");
-        return -1;
-    }
-    // 删除路径结尾的“\\”
-    del_last_ch(source, '\\');
-    del_last_ch(dest, '\\');
-    // 创建目标文件夹
-    create_dir(dest, overWrite);
-    // 导出源文件和目录的路径到列表文件
-    export_filelist(source, listFileName);
-    // 读取列表文件里的文件名
-    if (fopen_s(&fp, listFileName, "r"))
-    {
-        print_err(NULL);
-        return;
-    }
-    while (!feof(fp))
-    {
-        memset(temp, 0, sizeof(temp));
-        memset(sourceFileName, 0, sizeof(sourceFileName));
-        fgets(temp, sizeof(temp), fp);
-        del_last_ch(temp, '\n');
-        if (temp[0] == '\0')
-            continue;
-        get_filename(temp, sourceFileName, sizeof(sourceFileName));
-        if (is_excluded_file(sourceFileName))
-        {
-            sprintf_s(temp, sizeof(temp), "排除复制：%s", sourceFileName);
-            Print(temp, TRUE, DRAKWHITE);
-            continue;
-        }
-        retVal = is_file(temp);
-        // 将源文件路径替换为目标文件路径
-        // 例如：源文件路径：C:\\test\\file\\1.txt 替换后的路径：D:\\file\\1.txt
-        char* find = find_endofstr(temp, source);
-        if (*(find + 1) == '\\')
-            find += 2;
-
-        sprintf_s(destFileName, sizeof(destFileName), "%s\\%s", dest, find);
-        if (retVal == ISFILE_DIR)
-        {
-            if (create_dir(destFileName, overWrite) == FALSE)
-                numOfFailedDir++;
-        }
-        else if (retVal == ISFILE_FILE)
-        {
-            if (copy_file(temp, destFileName, overWrite) == FALSE)
-                numOfFailedFile++;
-        }
-        else
-        {
-            memset(temp, 0, sizeof(temp));
-            sprintf_s(temp, sizeof(temp), "复制：%s失败\n原因：未知文件\n", source);
-            Print(temp, FALSE, DRAKRED);
-            numOfFailedFile++;
-        }
-        totalFile++;
-    }
-    fclose(fp);
-    memset(temp, 0, sizeof(temp));
-    sprintf_s(temp, sizeof(temp), "\n\n源文件数：%d，失败文件数：%d，失败文件夹数：%d", totalFile, numOfFailedFile, numOfFailedDir);
-    Print(temp, TRUE, RED);
-    remove(listFileName);
-     if (numOfFailedDir != 0 || numOfFailedFile != 0)
-    	system("pause");
-    free(g_excluded_files);
-    return 0;
-}
