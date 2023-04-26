@@ -5,7 +5,7 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>E:\Downloads\3.系统工具\Dism++ D:\Dism++ True</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>"D:\系统ROM\Windows10_21H2.iso" "D:\1" True</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>

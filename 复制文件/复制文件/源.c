@@ -34,7 +34,7 @@ BOOL to_boolean(char* str, BOOL* boolValue);
 // 导出指定目录下所有文件名到文件
 void export_filelist(const char* const path, const char* const fileName);
 // 获取文件大小
-long get_filesize(const char* const fileName);
+long long get_filesize(const char* const fileName);
 // 打印进度
 void print_progress(char ch, int num, int color);
 // 是否为排除复制的文件
@@ -44,14 +44,14 @@ int get_filename(const char* fullPath, char* fileName, size_t size);
 // 批量复制文件
 void bulk_copy(const char* const listFile, char* sourceDir, char* destDir, int* numOfFailedFile, int* numOfFailedDir, int* totalFile, int overWrite);
 // 复制文件
-BOOL copy_file(const char* const source, const char* const dest, BOOL overWrite);
+BOOL copy_file(const char* const source, const char* const dest, BOOL overWrite, BOOL printProgress);
 // 创建目录
 BOOL create_dir(const char* const dirName);
 // 读取排除复制的文件名列表
 char** read_excluded_filelist(const char* const listName);
 void free_excluded_filelist(char** fileList);
 // 给定一个路径，判断是文件还是目录
-int is_file(const char* const fileName);
+int is_file(const char* const path);
 // 返回获取当前exe所在的目录路径，路径结尾不包括“\\”
 void get_module_dir(char* ret_dirpath, size_t size);
 // 在一个字符串中查找另一个字符串末尾的字符
@@ -72,7 +72,7 @@ int main(int argc, char* argv[])
     char source[MAX_PATH], dest[MAX_PATH], temp[MAX_PATH], dir[MAX_PATH];
     BOOL overWrite;
     char listFile[MAX_PATH] = "FileList.txt";
-    int numOfFailedFile, numOfFailedDir, totalFile;
+    int numOfFailedFile = 0, numOfFailedDir = 0, totalFile = 0;
     clock_t startTime, stopTime;
     startTime = clock();
 
@@ -123,21 +123,28 @@ int main(int argc, char* argv[])
         puts("源路径无效！");
         return -1;
     }
-    // 删除路径结尾的“\\”
-    del_last_ch(source, '\\');
-    del_last_ch(dest, '\\');
-    // 创建目标文件夹
-    create_dir(dest);
-    // 导出源文件和目录的路径到列表文件
-    export_filelist(source, listFile);
-    // 批量复制文件
-    bulk_copy(listFile, source, dest, &numOfFailedFile, &numOfFailedDir, &totalFile, overWrite);
-
+    if (is_file(source) == ISFILE_DIR)
+    {
+        // 删除路径结尾的“\\”
+        del_last_ch(source, '\\');
+        del_last_ch(dest, '\\');
+        // 创建目标文件夹
+        create_dir(dest);
+        // 导出源文件和目录的路径到列表文件
+        export_filelist(source, listFile);
+        // 批量复制文件
+        bulk_copy(listFile, source, dest, &numOfFailedFile, &numOfFailedDir, &totalFile, overWrite);
+        sprintf_s(temp, sizeof(temp), "\n\n源文件数：%d，失败文件数：%d，失败文件夹数：%d", totalFile, numOfFailedFile, numOfFailedDir);
+        print_text(temp, TRUE, RED);
+        remove(listFile);
+    }
+    else
+    {
+        if (!copy_file(source, dest, overWrite, TRUE))
+            numOfFailedFile++;
+    }
     stopTime = clock();
-    sprintf_s(temp, sizeof(temp), "\n\n源文件数：%d，失败文件数：%d，失败文件夹数：%d", totalFile, numOfFailedFile, numOfFailedDir);
-    print_text(temp, TRUE, RED);
-    printf("共耗时：%.3lf秒", ((double)stopTime - startTime) / CLOCKS_PER_SEC);
-    remove(listFile);
+    printf("\n共耗时：%.2lf秒\n", ((double)stopTime - startTime) / CLOCKS_PER_SEC);
     if (numOfFailedDir != 0 || numOfFailedFile != 0)
         system("pause");
     free_excluded_filelist(g_excluded_files);
@@ -196,7 +203,7 @@ void bulk_copy(const char* const listFile, char* sourceDir, char* destDir, int* 
         }
         else if (retVal == ISFILE_FILE)
         {
-            if (!copy_file(temp, destFile, overWrite))
+            if (!copy_file(temp, destFile, overWrite, FALSE))
                 (*numOfFailedFile)++;
         }
         else
@@ -281,10 +288,10 @@ void export_filelist(const char* const path, const char* const fileName)
 }
 
 // 获取文件大小
-long get_filesize(const char* const fileName)
+long long get_filesize(const char* const fileName)
 {
-    struct _stat info;
-    return (_stat(fileName, &info) == -1) ? -1 : info.st_size;
+    struct _stat64 info;
+    return (_stat64(fileName, &info) == -1) ? -1 : info.st_size;
 }
 
 // 打印进度
@@ -350,14 +357,15 @@ void print_size(double cursize, double totalsize)
 }
 
 // 复制文件
-BOOL copy_file(const char* const source, const char* const dest, BOOL overWrite)
+BOOL copy_file(const char* const source, const char* const dest, BOOL overWrite, BOOL printProgress)
 {
     FILE* fpRead, * fpWrite;
     size_t readLen;
     double curSize = 0.0;
     double totalSize = get_filesize(source);
-    char msg[MAX_PATH], err[MAX_PATH], fileName[MAX_PATH], name[MAX_PATH], ext[MAX_PATH], buf[4096];
-
+    char msg[MAX_PATH], err[MAX_PATH], fileName[MAX_PATH], name[MAX_PATH], ext[MAX_PATH];
+    char* buf = NULL;
+    size_t bufSize = totalSize > 1073741824.0 ? 104857600U : 4096U;
     if (_access(source, 0) == -1)
     {
         strerror_s(err, sizeof(err), errno);
@@ -383,9 +391,13 @@ BOOL copy_file(const char* const source, const char* const dest, BOOL overWrite)
         print_text(msg, TRUE, DRAKRED);
         return FALSE;
     }
+    buf = (char*)malloc(bufSize);
+    if (!buf)
+        return FALSE;
+    memset(buf, 0, bufSize);
     sprintf_s(msg, sizeof(msg), "正在复制：%s\n", source);
     print_text(msg, FALSE, DRAKBLUE);
-    while ((readLen = fread(buf, sizeof(char), sizeof(buf), fpRead)) != 0)
+    while ((readLen = fread(buf, sizeof(char), bufSize, fpRead)) != 0)
     {
         curSize += readLen;
         if (!fwrite(buf, sizeof(char), readLen, fpWrite))
@@ -395,20 +407,22 @@ BOOL copy_file(const char* const source, const char* const dest, BOOL overWrite)
             print_text(msg, TRUE, DRAKRED);
             fclose(fpRead);
             fclose(fpWrite);
+            free(buf);
             return FALSE;
         }
-        //// 打印进度条
-        //if (totalSize != -1)
-        //{
-        //    double curProg = curSize / totalSize * 100; // 当前进度
-        //    print_progress('>', (int)((curProg / 2) + 0.5), DRAKGREEN);
-        //    printf("%.2lf%% ", curProg);// 打印百分比
-        //    print_size(curSize, totalSize);// 打印已复制大小
-        //    putchar('\r');
-        //}
+        // 打印进度条
+        if (printProgress == TRUE && totalSize != -1)
+        {
+            double curProg = curSize / totalSize * 100; // 当前进度
+            print_progress('>', (int)((curProg / 2) + 0.5), DRAKGREEN);
+            printf("%.2lf%% ", curProg);// 打印百分比
+            print_size(curSize, totalSize);// 打印已复制大小
+            putchar('\r');
+        }
     }
     /*  if (totalSize != -1)
           putchar('\n');*/
+    free(buf);
     fclose(fpRead);
     fclose(fpWrite);
     return TRUE;
@@ -515,10 +529,10 @@ void free_excluded_filelist(char** fileList)
 }
 
 // 给定一个路径，判断是文件还是目录
-int is_file(const char* const fileName)
+int is_file(const char* const path)
 {
     struct _stat info;
-    if (_stat(fileName, &info) == -1)
+    if (_stat(path, &info) == -1)
         return ISFILE_INVALID;
     if (_S_IFDIR & info.st_mode)
         return ISFILE_DIR;
